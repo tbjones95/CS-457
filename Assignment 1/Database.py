@@ -7,7 +7,7 @@ class databaseShell(Cmd):
 
     def __init__(self):
         cmd.Cmd.__init__(self)
-        self.prompt = ":>"
+        self.prompt = ":> "
         self.intro  = "Welcome to Assignment 1!"
 
     def preloop(self):
@@ -29,18 +29,22 @@ class databaseShell(Cmd):
     def do_DROP(self, arg):
 
         # Variables
+        print "Drop"
 
     def do_USE(self, arg):
 
         # Variables
+        print "USE"
 
     def do_ALTER(self, arg):
 
         # Variables
+        print "ALTER"
 
     def do_SELECT(self, arg):
 
         # Variables
+        print "SELECT"
 
     def emptyline(self):
         # Variables
