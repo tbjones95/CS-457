@@ -1,8 +1,57 @@
 # Import Libraries
 import cmd, sys
+from cmd import Cmd
 from GlobalVars import *
 
-class databaseShell(object):
+class databaseShell(Cmd):
+
+    def __init__(self):
+        cmd.Cmd.__init__(self)
+        self.prompt = ":>"
+        self.intro  = "Welcome to Assignment 1!"
+
+    def preloop(self):
+
+        # Variables
+        self._hist    = []
+        self._locals  = {}
+        self._globals = {}
+
+        # Sets up command completion
+        cmd.Cmd.preloop(self)
+
+    def do_CREATE(self, arg):
+
+        # Variables
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+    def do_DROP(self, arg):
+
+        # Variables
+
+    def do_USE(self, arg):
+
+        # Variables
+
+    def do_ALTER(self, arg):
+
+        # Variables
+
+    def do_SELECT(self, arg):
+
+        # Variables
+
+    def emptyline(self):
+        # Variables
+
+        pass
+
+    def do_EXIT(self, arg):
+
+        # Variables
+
+        return -1
 
     def parseUserCommands(self, input):
 
@@ -38,19 +87,3 @@ class databaseShell(object):
         else:
             print "-- !Failed: Incorrect command."
             return None
-
-    def __databaseHandler(self, input):
-
-        # Variables
-        database = None
-        
-
-        #
-
-
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-
-    #def __tableHandler(self, input):
-
-        # Variables
