@@ -1,12 +1,12 @@
 # Import Libraries
-import cmd, sys
+import sys, os
 from cmd import Cmd
 from GlobalVars import *
 
 class databaseShell(Cmd):
 
     def __init__(self):
-        cmd.Cmd.__init__(self)
+        Cmd.__init__(self)
         self.prompt = ":> "
         self.intro  = "Welcome to Assignment 1!"
 
@@ -18,33 +18,66 @@ class databaseShell(Cmd):
         self._globals = {}
 
         # Sets up command completion
-        cmd.Cmd.preloop(self)
+        Cmd.preloop(self)
+
+    def default(self, arg):
+
+        # Variables
+
+        print "-- !Failed: Incorrect command."
 
     def do_CREATE(self, arg):
 
         # Variables
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+
+        # Check syntax
+        if not self.__checkSyntax(arg):
+            return
+
+        # Test to create database
+        if arg.startswith(DATABASE):
+
+            self.__createDatabase(arg)
+
+        elif arg.startswith(TABLE):
+
+            self.__createTable
 
     def do_DROP(self, arg):
 
         # Variables
         print "Drop"
 
+        # Check syntax
+        if not self.__checkSyntax(arg):
+            return
+
     def do_USE(self, arg):
 
         # Variables
         print "USE"
+
+        # Check syntax
+        if not self.__checkSyntax(arg):
+            return
 
     def do_ALTER(self, arg):
 
         # Variables
         print "ALTER"
 
+        # Check syntax
+        if not self.__checkSyntax(arg):
+            return
+
     def do_SELECT(self, arg):
 
         # Variables
         print "SELECT"
+
+        # Check syntax
+        if not self.__checkSyntax(arg):
+            return
 
     def emptyline(self):
         # Variables
@@ -57,37 +90,34 @@ class databaseShell(Cmd):
 
         return -1
 
-    def parseUserCommands(self, input):
+    def __checkSyntax(self, arg):
 
         # Variables
 
-        # Test for correct syntax
-        if not input == EXIT and not input.endswith(';'):
+        if not arg.endswith(';'):
+
             print "-- !Failed: Wrong syntax."
-            return None
+            return False
 
-        # Test for system commands
-        if input == EXIT:
-            return -1
+        return True
 
-        # Test for Database commands
-        if input.startswith(CREATE_DATABASE)\
-            or input.startswith(DELETE_DATABASE)\
-            or input.startswith(USE_DATABASE):
+    def __createDatabase(self, arg):
 
-            self.__databaseHandler(input)
+        # Variables
+        dbName = arg[:-1].split(" ")
 
-        # Test for Table commands
-        elif input.startswith(CREATE_TABLE)\
-            or input.startswith(DROP_TABLE)\
-            or input.startswith(ALTER_TABLE)\
-            or input.startswith(SELECT):
+        # Test for the correct syntax
+        if not len(dbName) == 2 or dbName[1] == '':
+            print "--!Failed: Incorrect Database Name"
+            return
 
-            self.__tableHandler(input)
+        # Place assign database
+        dbName = dbName[1]
 
-        elif input == "":
-            return None
+        # Create database folder
+        if not os.path.exists(dbName):
+            os.makedirs(dbName)
+            print "--!Succussful: Database " + dbName + " created."
 
         else:
-            print "-- !Failed: Incorrect command."
-            return None
+            print "-- !Failed: Database " + dbName + " already exists."
