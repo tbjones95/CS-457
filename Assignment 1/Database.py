@@ -1,5 +1,5 @@
 # Import Libraries
-import sys, os
+import sys, os, shutil
 from cmd import Cmd
 from GlobalVars import *
 
@@ -51,6 +51,17 @@ class databaseShell(Cmd):
         # Check syntax
         if not self.__checkSyntax(arg):
             return
+
+        # Test to create database
+        if arg.startswith(DATABASE):
+
+            self.__dropDatabase(arg)
+
+        elif arg.startswith(TABLE):
+
+            #self.__dropTable(arg)
+            print "hi"
+
 
     def do_USE(self, arg):
 
@@ -121,3 +132,24 @@ class databaseShell(Cmd):
 
         else:
             print "-- !Failed: Database " + dbName + " already exists."
+
+    def __dropDatabase(self, arg):
+
+        # Variables
+        dbName = arg[:-1].split(" ")
+
+        # Test for the correct syntax
+        if not len(dbName) == 2 or dbName[1] == '':
+            print "--!Failed: Incorrect Database Name"
+            return
+
+        # Place assign database
+        dbName = dbName[1]
+
+        # Create database folder
+        if not os.path.exists(dbName):
+            shutil.rmtree(dbName)
+            print "--!Succussful: Database " + dbName + " dropped."
+
+        else:
+            print "-- !Failed: Database " + dbName + " doesn't exist."
