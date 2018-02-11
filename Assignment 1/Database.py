@@ -50,7 +50,6 @@ class databaseShell(Cmd):
     def do_DROP(self, arg):
 
         # Variables
-        print "Drop"
 
         # Check syntax
         if not self.__checkSyntax(arg):
@@ -164,7 +163,7 @@ class databaseShell(Cmd):
         dbName = dbName[1]
 
         # Create database folder
-        if not os.path.exists(dbName):
+        if os.path.exists(dbName):
             shutil.rmtree(dbName)
             print "--!Succussful: Database " + dbName + " dropped."
 
