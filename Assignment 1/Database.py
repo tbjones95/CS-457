@@ -3,6 +3,10 @@ import sys, os, shutil
 from cmd import Cmd
 from GlobalVars import *
 
+# Globals
+DATABASE_DIR = os.getcwd() + "/Databases"
+CURRENT_DB_DIR = DATABASE_DIR
+
 class databaseShell(Cmd):
 
     def __init__(self):
@@ -66,11 +70,24 @@ class databaseShell(Cmd):
     def do_USE(self, arg):
 
         # Variables
-        print "USE"
+        global CURRENT_DB_DIR
 
         # Check syntax
         if not self.__checkSyntax(arg):
             return
+
+        # If we aren't in the Database Directory, that means we are in
+        # some other db, go back to home
+        if CURRENT_DB_DIR != DATABASE_DIR:
+                CURRENT_DB_DIR = DATABASE_DIR
+
+        # Check for existence of DB user is trying to use already
+        testPath = CURRENT_DB_DIR + "/" + arg[:-1]
+
+        if os.path.exists(testPath):
+            CURRENT_DB_DIR = testPath
+        else:
+            print "Error: No db with name " + arg[:-1] + " exists"
 
     def do_ALTER(self, arg):
 
