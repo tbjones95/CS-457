@@ -112,7 +112,7 @@ class databaseShell(Cmd):
             print "-- Error: Table doesn't exist"
             return
 
-        if query[2] == "ADD":
+        if query[2] == ADD:
             with open(tableFile, "r") as dataFile:
                 data = json.load(dataFile)
 
@@ -123,14 +123,12 @@ class databaseShell(Cmd):
                 print "-- Error: Column already exists"
                 return
 
-            # Add new column and it's datatype, then write to file
-            data[colName] = val
+            data[colName] = {"type": val, "data": []}
 
             with open(tableFile, "w") as dataFile:
                 json.dump(data, dataFile)
 
-        # Elif DROP COLUMN  *** Do if I have time ***
-        elif query[2] == "DROP" and query[3] == "COLUMN":
+        elif query[2] == DROP and query[3] == COLUMN:
             with open(tableFile, "r") as dataFile:
                 data = json.load(dataFile)
 
@@ -143,23 +141,22 @@ class databaseShell(Cmd):
             else:
                 print "-- Error: No column with the name " + query[4] + " exists in the table"
 
-        # Elif ALTER COLUMN *** Do if I have time ***
-        elif query[2] == "ALTER" and query[3] == "COLUMN":
+        elif query[2] == ALTER and query[3] == COLUMN:
             with open(tableFile, "r") as dataFile:
                 data = json.load(dataFile)
 
             colName = query[4]
             val = query[5].replace(";", "")
+            colData = data.get("data")
 
             if colName in data:
-                data[colName] = val
+                data[colName] = {"type": val, "data": [colData]}
 
                 with open(tableFile, "w") as dataFile:
                     json.dump(data, dataFile)
             else:
                 print "-- Error: No column with the name " + query[4] + " exists in the table"
 
-        # ELSE bad command error
         else:
             print "-- Error: Not a valid ALTER command"
             return
@@ -167,7 +164,27 @@ class databaseShell(Cmd):
     def do_SELECT(self, arg):
 
         # Variables
-        print "SELECT"
+
+        # If DB = DB DIR throw error No DB in use
+        if CURRENT_DB_DIR == DATABASE_DIR:
+            print "-- Error: No Database is being used"
+            return
+
+        # Get table name from current DB
+        query = arg.split(" ")
+        tableName = query[2].replace(";", "")
+        tableFile = CURRENT_DB_DIR + "/" + tableName + ".json"
+
+        if not os.path.isfile(tableFile):
+            print "-- Error: Table doesn't exist"
+            return
+
+        # SLECT * FROM - Other variations that select specific columsn will be handled later
+        if query[0] == "*" and query[1] == FROM:
+            with open(tableFile, "r") as dataFile:
+                data = json.load(dataFile)
+
+            pprint(data)
 
         # Check syntax
         if not self.__checkSyntax(arg):
