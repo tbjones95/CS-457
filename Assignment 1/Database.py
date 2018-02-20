@@ -1,7 +1,8 @@
 # Import Libraries
-import sys, os, shutil
+import sys, os, shutil, json
 from cmd import Cmd
 from GlobalVars import *
+from pprint import pprint
 
 # Globals
 DATABASE_DIR = os.getcwd() + "/Databases"
@@ -86,15 +87,81 @@ class databaseShell(Cmd):
         if os.path.exists(testPath):
             CURRENT_DB_DIR = testPath
         else:
-            print "Error: No db with name " + arg[:-1] + " exists"
+            print "-- Error: No db with name " + arg[:-1] + " exists"
 
+    # ALTER TABLE tab_1 ADD colName datatype, ALTER TABLE tab_1 DROP COLUMN colName, ALTER TABLE tab_1 ALTER COLUMN colName datatype
     def do_ALTER(self, arg):
 
         # Variables
-        print "ALTER"
 
         # Check syntax
         if not self.__checkSyntax(arg):
+            return
+
+        # If DB = DB DIR throw error No DB in use
+        if CURRENT_DB_DIR == DATABASE_DIR:
+            print "-- Error: No Database is being used"
+            return
+
+        # Get table name from current DB
+        query = arg.split(" ")
+        tableName = query[1]
+        tableFile = CURRENT_DB_DIR + "/" + tableName + ".json"
+
+        if not os.path.isfile(tableFile):
+            print "-- Error: Table doesn't exist"
+            return
+
+        if query[2] == "ADD":
+            with open(tableFile, "r") as dataFile:
+                data = json.load(dataFile)
+
+            colName = query[3]
+            val = query[4].replace(";", "")
+
+            if colName in data:
+                print "-- Error: Column already exists"
+                return
+
+            # Add new column and it's datatype, then write to file
+            data[colName] = val
+
+            with open(tableFile, "w") as dataFile:
+                json.dump(data, dataFile)
+
+        # Elif DROP COLUMN  *** Do if I have time ***
+        elif query[2] == "DROP" and query[3] == "COLUMN":
+            with open(tableFile, "r") as dataFile:
+                data = json.load(dataFile)
+
+            colName = query[4].replace(";", "")
+            if colName in data:
+                del data[colName]
+
+                with open(tableFile, "w") as dataFile:
+                    json.dump(data, dataFile)
+            else:
+                print "-- Error: No column with the name " + query[4] + " exists in the table"
+
+        # Elif ALTER COLUMN *** Do if I have time ***
+        elif query[2] == "ALTER" and query[3] == "COLUMN":
+            with open(tableFile, "r") as dataFile:
+                data = json.load(dataFile)
+
+            colName = query[4]
+            val = query[5].replace(";", "")
+
+            if colName in data:
+                data[colName] = val
+
+                with open(tableFile, "w") as dataFile:
+                    json.dump(data, dataFile)
+            else:
+                print "-- Error: No column with the name " + query[4] + " exists in the table"
+
+        # ELSE bad command error
+        else:
+            print "-- Error: Not a valid ALTER command"
             return
 
     def do_SELECT(self, arg):
