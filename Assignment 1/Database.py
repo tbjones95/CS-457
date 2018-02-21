@@ -1,6 +1,7 @@
 # Import Libraries
 import sys, os, shutil, json
 from cmd import Cmd
+from time import gmtime, strftime
 from GlobalVars import *
 from pprint import pprint
 
@@ -216,6 +217,8 @@ class databaseShell(Cmd):
 
         # Variables
         dbName = arg[:-1].split(" ")
+        date = strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        databaseInfo = None
         databaseDir = None
         database = None
 
@@ -233,7 +236,15 @@ class databaseShell(Cmd):
             print "-- !Failed: Database " + dbName + " already exists."
             return
 
+        # Create a database folder
         os.makedirs(os.path.dirname(databasePath))
+
+        # Pull database information
+        databaseInfo = {"Database Name" : dbName, "Date" : date, "Tables" :{}}
+
+        # Dump database information into json file
+        with open(databasePath + dbName + ".json", 'w') as outfile:
+            json.dump(databaseInfo, outfile, indent = 4, sort_keys = True)
 
     def __dropDatabase(self, arg):
 
