@@ -1,10 +1,10 @@
 # Import Libraries
-import sys, os, shutil
+import sys, os, shutil, json
 from cmd import Cmd
 from GlobalVars import *
 
 # Globals
-DATABASE_DIR = os.getcwd() + "/Databases"
+DATABASE_DIR = os.getcwd() + r"\Databases"
 CURRENT_DB_DIR = DATABASE_DIR
 
 class databaseShell(Cmd):
@@ -132,6 +132,8 @@ class databaseShell(Cmd):
 
         # Variables
         dbName = arg[:-1].split(" ")
+        databaseDir = None
+        database = None
 
         # Test for the correct syntax
         if not len(dbName) == 2 or dbName[1] == '':
@@ -140,14 +142,14 @@ class databaseShell(Cmd):
 
         # Place assign database
         dbName = dbName[1]
+        databasePath = DATABASE_DIR + "\\" + dbName + "\\"
 
-        # Create database folder
-        if not os.path.exists(dbName):
-            os.makedirs(dbName)
-            print "--!Succussful: Database " + dbName + " created."
-
-        else:
+        # Check for a database folder
+        if os.path.exists(databasePath):
             print "-- !Failed: Database " + dbName + " already exists."
+            return
+
+        os.makedirs(os.path.dirname(databasePath))
 
     def __dropDatabase(self, arg):
 
@@ -162,10 +164,10 @@ class databaseShell(Cmd):
         # Place assign database
         dbName = dbName[1]
 
-        # Create database folder
-        if os.path.exists(dbName):
-            shutil.rmtree(dbName)
-            print "--!Succussful: Database " + dbName + " dropped."
-
-        else:
+        # Check for a database folder
+        if not os.path.exists(dbName):
             print "-- !Failed: Database " + dbName + " doesn't exist."
+            return
+
+        shutil.rmtree(dbName)
+        print "--!Succussful: Database " + dbName + " dropped."
