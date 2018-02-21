@@ -1,15 +1,33 @@
 {
-   "id": 1,
-   "col2": {
-      "data": ["test", "test2", "test3"],
-      "type": "varchar(256)"
-   },
-   "col3": {
-      "data": [null],
-      "type": "varchar(256)"
-   },
-   "col1": {
-      "data": [1, 2, 3, 4, 5, 6],
-      "type": "int(25)"
-   }
+    "col1": {
+        "data": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "type": "int(25)"
+    },
+    "col2": {
+        "data": [
+            "test",
+            "test2",
+            "test3"
+        ],
+        "type": "varchar(256)"
+    },
+    "col3": {
+        "data": [], 
+        "type": "varchar(256)"
+    },
+    "col4": {
+        "data": [],
+        "type": "int(5)"
+    },
+    "col5": {
+        "data": [],
+        "type": "varchar(25000)"
+    }
 }

@@ -126,7 +126,7 @@ class databaseShell(Cmd):
             data[colName] = {"type": val, "data": []}
 
             with open(tableFile, "w") as dataFile:
-                json.dump(data, dataFile)
+                json.dump(data, dataFile, indent = 4, sort_keys = True)
 
         elif query[2] == DROP and query[3] == COLUMN:
             with open(tableFile, "r") as dataFile:
@@ -137,7 +137,7 @@ class databaseShell(Cmd):
                 del data[colName]
 
                 with open(tableFile, "w") as dataFile:
-                    json.dump(data, dataFile)
+                    json.dump(data, dataFile, indent = 4, sort_keys = True)
             else:
                 print "-- Error: No column with the name " + query[4] + " exists in the table"
 
@@ -153,7 +153,7 @@ class databaseShell(Cmd):
                 data[colName] = {"type": val, "data": [colData]}
 
                 with open(tableFile, "w") as dataFile:
-                    json.dump(data, dataFile)
+                    json.dump(data, dataFile, indent = 4, sort_keys = True)
             else:
                 print "-- Error: No column with the name " + query[4] + " exists in the table"
 
