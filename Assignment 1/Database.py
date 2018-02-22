@@ -315,6 +315,11 @@ class databaseShell(Cmd):
 
             columns = columnList[count].split(' ')
 
+            # Check for correct datatype
+            if not columns[1] in DATATYPES:
+                print  "-- !Failed: Datatype '" + columns[1] + "' incorrect type."
+                return
+
             # TODO: Check for equal amount of ()
 
             tableInfo.update({

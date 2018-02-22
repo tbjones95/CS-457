@@ -6,3 +6,10 @@ DROP = "DROP"
 COLUMN = "COLUMN"
 SELECT = "SELECT"
 FROM = "FROM"
+
+DATATYPES = [
+                "int",
+                "float",
+                "varchar",
+                "char",
+            ]
