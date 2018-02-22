@@ -6,7 +6,7 @@ from GlobalVars import *
 from pprint import pprint
 
 # Globals
-DATABASE_DIR = os.getcwd() + r"\Databases"
+DATABASE_DIR = os.getcwd() + r"/Databases"
 CURRENT_DB_DIR = DATABASE_DIR
 
 class databaseShell(Cmd):
@@ -37,7 +37,7 @@ class databaseShell(Cmd):
         # Variables
 
         # Check syntax
-        if not self.__checkSyntax(arg):
+        if not self.__testCreateSyntax(arg):
             return
 
         # Test to create database
@@ -83,7 +83,7 @@ class databaseShell(Cmd):
                 CURRENT_DB_DIR = DATABASE_DIR
 
         # Check for existence of DB user is trying to use already
-        testPath = CURRENT_DB_DIR + "\\" + arg[:-1]
+        testPath = CURRENT_DB_DIR + "/" + arg[:-1]
 
         if os.path.exists(testPath):
             CURRENT_DB_DIR = testPath
@@ -107,7 +107,7 @@ class databaseShell(Cmd):
         # Get table name from current DB
         query = arg.split(" ")
         tableName = query[1]
-        tableFile = CURRENT_DB_DIR + "\\" + tableName + ".json"
+        tableFile = CURRENT_DB_DIR + "/" + tableName + ".json"
 
         if not os.path.isfile(tableFile):
             print "-- Error: Table doesn't exist"
@@ -174,7 +174,7 @@ class databaseShell(Cmd):
         # Get table name from current DB
         query = arg.split(" ")
         tableName = query[2].replace(";", "")
-        tableFile = CURRENT_DB_DIR + "\\" + tableName + ".json"
+        tableFile = CURRENT_DB_DIR + "/" + tableName + ".json"
 
         if not os.path.isfile(tableFile):
             print "-- Error: Table doesn't exist"
@@ -223,14 +223,9 @@ class databaseShell(Cmd):
         databaseDir = None
         database = None
 
-        # Test for the correct syntax
-        if not len(dbName) == 2 or dbName[1] == '':
-            print "--!Failed: Incorrect Database Name"
-            return
-
         # Place assign database
         dbName = dbName[1]
-        databasePath = DATABASE_DIR + "\\" + dbName + "\\"
+        databasePath = DATABASE_DIR + "/" + dbName + "/"
 
         # Check for a database folder
         if os.path.exists(databasePath):
@@ -275,33 +270,24 @@ class databaseShell(Cmd):
     def __createTable(self, arg):
 
         # Variables
-        databaseFile = CURRENT_DB_DIR + "\\" + os.path.basename(CURRENT_DB_DIR) + ".json"
+        databaseFile = CURRENT_DB_DIR + "/" + os.path.basename(CURRENT_DB_DIR) + ".json"
         databaseInfo = None
         tablePath = None
         columnList = None
-        columns = []
+        column = []
         count = None
         tableInfo = {}
-
-        # Split the arguments
-        arg = arg[:-1].split(' ', 2)
-
-        # Test for correct syntax
-        if not len(arg) == 3 or arg[1] == '' or arg[2] == '':
-            print "--!Failed: Incorrect Table Name"
-            return
-
-        if not arg[2].startswith('(') or not arg[2].endswith(')'):
-            print "--!Failed: Incorrect Column Configurations"
-            return
 
         # Check if database has been selected
         if CURRENT_DB_DIR == DATABASE_DIR:
             print "-- Error: No Database is being used"
             return
 
+        # Split the arguments
+        arg = arg[:-1].split(' ', 2)
+
         # Assign column list and table name
-        tablePath = CURRENT_DB_DIR + "\\" + arg[1] + ".json"
+        tablePath = CURRENT_DB_DIR + "/" + arg[1] + ".json"
         columnList = arg[2][1:-1]
         columnList = columnList.split(', ')
 
@@ -313,18 +299,18 @@ class databaseShell(Cmd):
         # Loop through each columns
         for count in range(len(columnList)):
 
-            columns = columnList[count].split(' ')
+            column = columnList[count].split(' ')
 
-            # Check for correct datatype
-            if not columns[1] in DATATYPES:
-                print  "-- !Failed: Datatype '" + columns[1] + "' incorrect type."
+            if column[0] == "" or column[0] == " ":
+                print "-- !Failed: Incorrect syntax."
+                return False
+
+            if not self.__testDataTypes(column[1]):
                 return
 
-            # TODO: Check for equal amount of ()
-
             tableInfo.update({
-                                columns[0] : {
-                                    "Datatype" : columns[1],
+                                column[0] : {
+                                    "Datatype" : column[1],
                                     "Data" : []
                                 }
                             })
@@ -341,3 +327,74 @@ class databaseShell(Cmd):
 
         with open(databaseFile, 'w') as outfile:
             json.dump(databaseInfo, outfile, indent = 4, sort_keys = True)
+
+    def __testCreateSyntax(self, command):
+
+        # Variables
+        cmdCompents = None
+
+        if not command.endswith(';'):
+            print "-- !Failed: Incorrect syntax."
+            return False
+
+        # Break command down into different pieces
+        cmdCompents = command[:-1].split(' ', 2)
+
+        # Test for either Database or Table
+        if cmdCompents[0] == "TABLE":
+
+            if not len(cmdCompents) == 3:
+                print "-- !Failed: Incorrect syntax."
+                return False
+
+            if cmdCompents[1] == " " or cmdCompents[2] == " ":
+                print "-- !Failed: Incorrect syntax."
+                return False
+
+            if not cmdCompents[2].startswith('(') or not cmdCompents[2].endswith(')'):
+                print "-- !Failed: Incorrect syntax."
+                return False
+
+            return True
+
+        if cmdCompents[0] == "DATABASE":
+
+            # Test for the correct syntax
+            if not len(cmdCompents) == 2:
+                print "-- !Failed: Incorrect syntax."
+                return False
+
+            if cmdCompents[1] == " ":
+                print "-- !Failed: Incorrect syntax."
+                return False
+
+            return True
+
+        print "-- !Failed: Unknown command '" + cmdCompents[0] + "'."
+        return False
+
+    def __testDataTypes(self, datatype):
+
+        # Variables
+        size = None
+
+        # Test for INT and FLOAT
+        if datatype == "int" or datatype == "float":
+            return True
+
+        # Test for VARCHAR and CHAR
+        if ((datatype.startswith("varchar(") or datatype.startswith("char(")) and datatype.endswith(")")):
+
+            size = datatype[:-1].split("(")[1]
+
+            try:
+                val = int(size)
+            except ValueError:
+                print "-- !Failed: Incorrect datatype size."
+                return False
+
+            return True
+
+        # Incorrect datatype was used
+        print "-- !Failed: Incorrect datatype used."
+        return False
