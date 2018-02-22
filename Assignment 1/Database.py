@@ -47,7 +47,7 @@ class databaseShell(Cmd):
 
         elif arg.startswith(TABLE):
 
-            self.__createTable
+            self.__createTable(arg)
 
     def do_DROP(self, arg):
 
@@ -83,7 +83,7 @@ class databaseShell(Cmd):
                 CURRENT_DB_DIR = DATABASE_DIR
 
         # Check for existence of DB user is trying to use already
-        testPath = CURRENT_DB_DIR + "/" + arg[:-1]
+        testPath = CURRENT_DB_DIR + "\\" + arg[:-1]
 
         if os.path.exists(testPath):
             CURRENT_DB_DIR = testPath
@@ -107,7 +107,7 @@ class databaseShell(Cmd):
         # Get table name from current DB
         query = arg.split(" ")
         tableName = query[1]
-        tableFile = CURRENT_DB_DIR + "/" + tableName + ".json"
+        tableFile = CURRENT_DB_DIR + "\\" + tableName + ".json"
 
         if not os.path.isfile(tableFile):
             print "-- Error: Table doesn't exist"
@@ -174,7 +174,7 @@ class databaseShell(Cmd):
         # Get table name from current DB
         query = arg.split(" ")
         tableName = query[2].replace(";", "")
-        tableFile = CURRENT_DB_DIR + "/" + tableName + ".json"
+        tableFile = CURRENT_DB_DIR + "\\" + tableName + ".json"
 
         if not os.path.isfile(tableFile):
             print "-- Error: Table doesn't exist"
@@ -192,6 +192,7 @@ class databaseShell(Cmd):
             return
 
     def emptyline(self):
+
         # Variables
 
         pass
@@ -240,7 +241,11 @@ class databaseShell(Cmd):
         os.makedirs(os.path.dirname(databasePath))
 
         # Pull database information
-        databaseInfo = {"Database Name" : dbName, "Date" : date, "Tables" :{}}
+        databaseInfo = {
+                        "Database Name" : dbName,
+                        "Date" : date,
+                        "Tables" : []
+                        }
 
         # Dump database information into json file
         with open(databasePath + dbName + ".json", 'w') as outfile:
@@ -266,3 +271,68 @@ class databaseShell(Cmd):
 
         shutil.rmtree(dbName)
         print "--!Succussful: Database " + dbName + " dropped."
+
+    def __createTable(self, arg):
+
+        # Variables
+        databaseFile = CURRENT_DB_DIR + "\\" + os.path.basename(CURRENT_DB_DIR) + ".json"
+        databaseInfo = None
+        tablePath = None
+        columnList = None
+        columns = []
+        count = None
+        tableInfo = {}
+
+        # Split the arguments
+        arg = arg[:-1].split(' ', 2)
+
+        # Test for correct syntax
+        if not len(arg) == 3 or arg[1] == '' or arg[2] == '':
+            print "--!Failed: Incorrect Table Name"
+            return
+
+        if not arg[2].startswith('(') or not arg[2].endswith(')'):
+            print "--!Failed: Incorrect Column Configurations"
+            return
+
+        # Check if database has been selected
+        if CURRENT_DB_DIR == DATABASE_DIR:
+            print "-- Error: No Database is being used"
+            return
+
+        # Assign column list and table name
+        tablePath = CURRENT_DB_DIR + "\\" + arg[1] + ".json"
+        columnList = arg[2][1:-1]
+        columnList = columnList.split(', ')
+
+        # Test if table already exist
+        if os.path.exists(tablePath):
+            print "-- !Failed: Table " + arg[1] + " already exists."
+            return
+
+        # Loop through each columns
+        for count in range(len(columnList)):
+
+            columns = columnList[count].split(' ')
+
+            # TODO: Check for equal amount of ()
+
+            tableInfo.update({
+                                columns[0] : {
+                                    "Datatype" : columns[1],
+                                    "Data" : []
+                                }
+                            })
+
+        # Dump table information into json file
+        with open(tablePath, 'w') as outfile:
+            json.dump(tableInfo, outfile, indent = 4, sort_keys = True)
+
+        # Add table to database file
+        with open(databaseFile, 'r') as outfile:
+            databaseInfo = json.load(outfile)
+
+        databaseInfo["Tables"].append(arg[1])
+
+        with open(databaseFile, 'w') as outfile:
+            json.dump(databaseInfo, outfile, indent = 4, sort_keys = True)
