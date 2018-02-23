@@ -6,8 +6,9 @@ from GlobalVars import *
 from pprint import pprint
 
 # Globals
-DATABASE_DIR = os.getcwd() + r"\Databases"
+DATABASE_DIR = os.getcwd() + "/Databases"
 CURRENT_DB_DIR = DATABASE_DIR
+DB_NAME = ""
 
 class databaseShell(Cmd):
 
@@ -64,14 +65,15 @@ class databaseShell(Cmd):
 
         elif arg.startswith(TABLE):
 
-            #self.__dropTable(arg)
-            print "hi"
-
+            self.__dropTable(arg)
 
     def do_USE(self, arg):
 
         # Variables
         global CURRENT_DB_DIR
+        dbName = arg[:-1]
+        global DB_NAME
+        DB_NAME = dbName
 
         # Check syntax
         if not self.__checkSyntax(arg):
@@ -83,12 +85,13 @@ class databaseShell(Cmd):
                 CURRENT_DB_DIR = DATABASE_DIR
 
         # Check for existence of DB user is trying to use already
-        testPath = CURRENT_DB_DIR + "\\" + arg[:-1]
+        testPath = CURRENT_DB_DIR + "/" + dbName
 
         if os.path.exists(testPath):
             CURRENT_DB_DIR = testPath
+            print "-- Success: Database " + dbName + " is in use"
         else:
-            print "-- Error: No db with name " + arg[:-1] + " exists"
+            print "-- !Failed: No db with name " + dbName + " exists"
 
     # ALTER TABLE tab_1 ADD colName datatype, ALTER TABLE tab_1 DROP COLUMN colName, ALTER TABLE tab_1 ALTER COLUMN colName datatype
     def do_ALTER(self, arg):
@@ -101,16 +104,16 @@ class databaseShell(Cmd):
 
         # If DB = DB DIR throw error No DB in use
         if CURRENT_DB_DIR == DATABASE_DIR:
-            print "-- Error: No Database is being used"
+            print "-- !Failed: No Database is being used"
             return
 
         # Get table name from current DB
         query = arg.split(" ")
         tableName = query[1]
-        tableFile = CURRENT_DB_DIR + "\\" + tableName + ".json"
+        tableFile = CURRENT_DB_DIR + "/" + tableName + ".json"
 
         if not os.path.isfile(tableFile):
-            print "-- Error: Table doesn't exist"
+            print "-- !Failed: Table doesn't exist"
             return
 
         if query[2] == ADD:
@@ -121,13 +124,14 @@ class databaseShell(Cmd):
             val = query[4].replace(";", "")
 
             if colName in data:
-                print "-- Error: Column already exists"
+                print "-- !Failed: Column already exists"
                 return
 
             data[colName] = {"type": val, "data": []}
 
             with open(tableFile, "w") as dataFile:
                 json.dump(data, dataFile, indent = 4, sort_keys = True)
+                print "-- Success: Column " + colName + " " + val + " added to table"
 
         elif query[2] == DROP and query[3] == COLUMN:
             with open(tableFile, "r") as dataFile:
@@ -139,8 +143,9 @@ class databaseShell(Cmd):
 
                 with open(tableFile, "w") as dataFile:
                     json.dump(data, dataFile, indent = 4, sort_keys = True)
+                    print "-- Success: Column " + colName + " " + val + " dropped from table"
             else:
-                print "-- Error: No column with the name " + query[4] + " exists in the table"
+                print "-- !Failed: No column with the name " + query[4] + " exists in the table"
 
         elif query[2] == ALTER and query[3] == COLUMN:
             with open(tableFile, "r") as dataFile:
@@ -155,11 +160,12 @@ class databaseShell(Cmd):
 
                 with open(tableFile, "w") as dataFile:
                     json.dump(data, dataFile, indent = 4, sort_keys = True)
+                    print "-- Success: Column " + colName + " altered to " + val
             else:
-                print "-- Error: No column with the name " + query[4] + " exists in the table"
+                print "-- !Failed: No column with the name " + query[4] + " exists in the table"
 
         else:
-            print "-- Error: Not a valid ALTER command"
+            print "-- !Failed: Not a valid ALTER command"
             return
 
     def do_SELECT(self, arg):
@@ -168,16 +174,16 @@ class databaseShell(Cmd):
 
         # If DB = DB DIR throw error No DB in use
         if CURRENT_DB_DIR == DATABASE_DIR:
-            print "-- Error: No Database is being used"
+            print "-- !Failed: No Database is being used"
             return
 
         # Get table name from current DB
         query = arg.split(" ")
         tableName = query[2].replace(";", "")
-        tableFile = CURRENT_DB_DIR + "\\" + tableName + ".json"
+        tableFile = CURRENT_DB_DIR + "/" + tableName + ".json"
 
         if not os.path.isfile(tableFile):
-            print "-- Error: Table doesn't exist"
+            print "-- !Failed: Table doesn't exist"
             return
 
         # SLECT * FROM - Other variations that select specific columsn will be handled later
@@ -185,6 +191,7 @@ class databaseShell(Cmd):
             with open(tableFile, "r") as dataFile:
                 data = json.load(dataFile)
 
+            print "-- Success:"
             pprint(data)
 
         # Check syntax
@@ -225,12 +232,12 @@ class databaseShell(Cmd):
 
         # Test for the correct syntax
         if not len(dbName) == 2 or dbName[1] == '':
-            print "--!Failed: Incorrect Database Name"
+            print "-- !Failed: Incorrect Database Name"
             return
 
         # Place assign database
         dbName = dbName[1]
-        databasePath = DATABASE_DIR + "\\" + dbName + "\\"
+        databasePath = DATABASE_DIR + "/" + dbName + "/"
 
         # Check for a database folder
         if os.path.exists(databasePath):
@@ -251,6 +258,8 @@ class databaseShell(Cmd):
         with open(databasePath + dbName + ".json", 'w') as outfile:
             json.dump(databaseInfo, outfile, indent = 4, sort_keys = True)
 
+        print "-- Success: Database " + dbName + " created"
+
     def __dropDatabase(self, arg):
 
         # Variables
@@ -258,24 +267,24 @@ class databaseShell(Cmd):
 
         # Test for the correct syntax
         if not len(dbName) == 2 or dbName[1] == '':
-            print "--!Failed: Incorrect Database Name"
+            print "-- !Failed: Incorrect Database Name"
             return
 
         # Place assign database
-        dbName = dbName[1]
+        dbPath = DATABASE_DIR + "/" + dbName[1]
 
         # Check for a database folder
-        if not os.path.exists(dbName):
-            print "-- !Failed: Database " + dbName + " doesn't exist."
+        if not os.path.exists(dbPath):
+            print "-- !Failed: Database " + dbName[1] + " doesn't exist."
             return
 
-        shutil.rmtree(dbName)
-        print "--!Succussful: Database " + dbName + " dropped."
+        shutil.rmtree(dbPath)
+        print "-- Succuss: Database " + dbName[1] + " dropped."
 
     def __createTable(self, arg):
 
         # Variables
-        databaseFile = CURRENT_DB_DIR + "\\" + os.path.basename(CURRENT_DB_DIR) + ".json"
+        databaseFile = CURRENT_DB_DIR + "/" + os.path.basename(CURRENT_DB_DIR) + ".json"
         databaseInfo = None
         tablePath = None
         columnList = None
@@ -285,29 +294,30 @@ class databaseShell(Cmd):
 
         # Split the arguments
         arg = arg[:-1].split(' ', 2)
+        tableName = arg[1]
 
         # Test for correct syntax
         if not len(arg) == 3 or arg[1] == '' or arg[2] == '':
-            print "--!Failed: Incorrect Table Name"
+            print "-- !Failed: Incorrect Table Name"
             return
 
         if not arg[2].startswith('(') or not arg[2].endswith(')'):
-            print "--!Failed: Incorrect Column Configurations"
+            print "-- !Failed: Incorrect Column Configurations"
             return
 
         # Check if database has been selected
         if CURRENT_DB_DIR == DATABASE_DIR:
-            print "-- Error: No Database is being used"
+            print "-- !Failed: No Database is being used"
             return
 
         # Assign column list and table name
-        tablePath = CURRENT_DB_DIR + "\\" + arg[1] + ".json"
+        tablePath = CURRENT_DB_DIR + "/" + tableName + ".json"
         columnList = arg[2][1:-1]
         columnList = columnList.split(', ')
 
         # Test if table already exist
         if os.path.exists(tablePath):
-            print "-- !Failed: Table " + arg[1] + " already exists."
+            print "-- !Failed: Table " + tableName + " already exists."
             return
 
         # Loop through each columns
@@ -336,3 +346,36 @@ class databaseShell(Cmd):
 
         with open(databaseFile, 'w') as outfile:
             json.dump(databaseInfo, outfile, indent = 4, sort_keys = True)
+
+        print "-- Success: Table " + tableName + " created"
+
+    def __dropTable(self, arg):
+
+        # Variables
+        arg = arg[:-1].split(' ', 2)
+        tableName = arg[1]
+        tablePath = CURRENT_DB_DIR + "/" + tableName + ".json"
+        dbTablePath = CURRENT_DB_DIR + "/" + DB_NAME + ".json"
+
+        # Check if table exists in current DB and remove from the folder
+        if os.path.exists(tablePath):
+            os.remove(tablePath)
+
+            # Delete the table from the databases file as well
+            with open(dbTablePath, "r") as tableFile:
+                data = json.load(tableFile)
+
+                if tableName in data["Tables"]:
+                    data["Tables"].remove(tableName)
+                else:
+                    print "-- !Failed: table doesn't exist in database file"
+
+            with open(dbTablePath, 'w') as tableFile:
+                json.dump(data, tableFile, indent = 4, sort_keys = True)
+
+            # Report success
+            print "-- Success: Table " + tableName + " dropped"
+
+        # If table does exist, delete the Failed
+        else:
+            print "-- !Failed: Table " + tableName + " doesn't exist"
