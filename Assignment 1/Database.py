@@ -6,11 +6,7 @@ from GlobalVars import *
 from pprint import pprint
 
 # Globals
-<<<<<<< HEAD
-DATABASE_DIR = os.getcwd() + r"/Databases"
-=======
 DATABASE_DIR = os.getcwd() + "/Databases"
->>>>>>> amir
 CURRENT_DB_DIR = DATABASE_DIR
 DB_NAME = ""
 
@@ -89,11 +85,7 @@ class databaseShell(Cmd):
                 CURRENT_DB_DIR = DATABASE_DIR
 
         # Check for existence of DB user is trying to use already
-<<<<<<< HEAD
-        testPath = CURRENT_DB_DIR + "/" + arg[:-1]
-=======
         testPath = CURRENT_DB_DIR + "/" + dbName
->>>>>>> amir
 
         if os.path.exists(testPath):
             CURRENT_DB_DIR = testPath
@@ -238,14 +230,6 @@ class databaseShell(Cmd):
         databaseDir = None
         database = None
 
-<<<<<<< HEAD
-=======
-        # Test for the correct syntax
-        if not len(dbName) == 2 or dbName[1] == '':
-            print "-- !Failed: Incorrect Database Name"
-            return
-
->>>>>>> amir
         # Place assign database
         dbName = dbName[1]
         databasePath = DATABASE_DIR + "/" + dbName + "/"
@@ -303,8 +287,6 @@ class databaseShell(Cmd):
         count = None
         tableInfo = {}
 
-<<<<<<< HEAD
-=======
         # Split the arguments
         arg = arg[:-1].split(' ', 2)
         tableName = arg[1]
@@ -318,21 +300,13 @@ class databaseShell(Cmd):
             print "-- !Failed: Incorrect Column Configurations"
             return
 
->>>>>>> amir
         # Check if database has been selected
         if CURRENT_DB_DIR == DATABASE_DIR:
             print "-- !Failed: No Database is being used"
             return
 
-        # Split the arguments
-        arg = arg[:-1].split(' ', 2)
-
         # Assign column list and table name
-<<<<<<< HEAD
-        tablePath = CURRENT_DB_DIR + "/" + arg[1] + ".json"
-=======
         tablePath = CURRENT_DB_DIR + "/" + tableName + ".json"
->>>>>>> amir
         columnList = arg[2][1:-1]
         columnList = columnList.split(', ')
 
@@ -373,7 +347,8 @@ class databaseShell(Cmd):
         with open(databaseFile, 'w') as outfile:
             json.dump(databaseInfo, outfile, indent = 4, sort_keys = True)
 
-<<<<<<< HEAD
+        print "-- Success: Table " + tableName + " created"
+
     def __testCreateSyntax(self, command):
 
         # Variables
@@ -444,8 +419,6 @@ class databaseShell(Cmd):
         # Incorrect datatype was used
         print "-- !Failed: Incorrect datatype used."
         return False
-=======
-        print "-- Success: Table " + tableName + " created"
 
     def __dropTable(self, arg):
 
@@ -477,4 +450,3 @@ class databaseShell(Cmd):
         # If table does exist, delete the Failed
         else:
             print "-- !Failed: Table " + tableName + " doesn't exist"
->>>>>>> amir
