@@ -1,3 +1,7 @@
+# Authors: Amir Behmaram and Tanner Jones
+# Date: 2/22/2018
+# Version: 1.0
+
 # Import Libraries
 import sys, os, shutil, json
 from cmd import Cmd
