@@ -8,6 +8,7 @@ from cmd import Cmd
 from time import gmtime, strftime
 from GlobalVars import *
 from pprint import pprint
+from collections import OrderedDict
 
 # Globals
 DATABASE_DIR = os.getcwd() + "/Databases"
@@ -248,17 +249,79 @@ class databaseShell(Cmd):
                 json.dump(data, dataFile, indent = 4, sort_keys = True)
                 print "-- Success: Column " + colName + " " + val + " added to table"
             '''
-    def emptyline(self):
+
+    def do_select(self, arg):
 
         # Variables
+        columnList = None
+        tableName = None
+        tablePath = None
+        condition = None
+        data = None
+        count = None
+        tableHeader = None
+        rowList = None
 
-        pass
+        # Check if database has been selected
+        if CURRENT_DB_DIR == DATABASE_DIR:
+            print "-- !Failed: No Database is being used"
+            return
+
+        # Strip what columns the user wants
+        arg = arg[:-1].split(" from ")
+
+        # Test for the correct syntax
+        if not len(arg) == 2:
+            print "-- !Failed: Incorrect select syntax"
+            return
+
+        # Strip column list
+        columnList = arg[0].split(", ")
+
+        # Strip the where statement
+        arg = arg[1].split(" where ")
+
+        if len(arg) == 2:
+            condition = arg[1]
+
+        # Assign table name
+        tableName = arg[0]
+        tablePath = CURRENT_DB_DIR + "/" + tableName + ".json"
+
+        # Gather table data
+        with open(tablePath, 'r') as table:
+            data = json.load(table, object_pairs_hook=OrderedDict)
+
+        # Gather column list for *
+        if columnList[0].startswith(STAR):
+
+            columnList = []
+
+            # Create table header and get column lists
+            for column, datatype in data.iteritems():
+
+                columnList.append(column)
+
+        tableHeader, rowList = self.__gatherTableData(columnList, data, condition)
+
+        # Print results
+        print tableHeader
+
+        for count in range(len(rowList)):
+
+            print rowList[count]
 
     def do_EXIT(self, arg):
 
         # Variables
 
         return -1
+
+    def emptyline(self):
+
+        # Variables
+
+        pass
 
     def __checkSyntax(self, arg):
 
@@ -277,8 +340,6 @@ class databaseShell(Cmd):
         dbName = arg[:-1].split(" ")
         date = strftime("%Y-%m-%d %H:%M:%S", gmtime())
         databaseInfo = None
-        databaseDir = None
-        database = None
 
         # Place assign database
         dbName = dbName[1]
@@ -335,7 +396,7 @@ class databaseShell(Cmd):
         columnList = None
         column = []
         count = None
-        tableInfo = {}
+        tableInfo = OrderedDict()
 
         # Split the arguments
         arg = arg[:-1].split(' ', 2)
@@ -386,7 +447,7 @@ class databaseShell(Cmd):
 
         # Dump table information into json file
         with open(tablePath, 'w') as outfile:
-            json.dump(tableInfo, outfile, indent = 4, sort_keys = True)
+            json.dump(tableInfo, outfile, indent = 4, sort_keys = False)
 
         # Add table to database file
         with open(databaseFile, 'r') as outfile:
@@ -500,3 +561,86 @@ class databaseShell(Cmd):
         # If table does exist, delete the Failed
         else:
             print "-- !Failed: Table " + tableName + " doesn't exist"
+
+    def __gatherTableData(self, columnList, data, condition):
+
+        # Variables
+        count = None
+        dataSize = None
+        tableHeader = ""
+        rowStatement = None
+        rowList = []
+        column = None
+        operator = None
+        value = None
+
+        # Create table header and get column lists
+        for count in range(len(columnList)):
+
+            dataSize = len(data[columnList[count]]["Data"])
+
+            tableHeader += columnList[count] + " (" + data[columnList[count]]["Datatype"] + ") | "
+
+        # Parse condition statement
+        if not condition == None:
+            column, operator, value = self.__parseWhereStatements(condition)
+
+        # Gather data from each column
+        for count in range(dataSize):
+
+            rowStatement = ""
+
+            if not condition == None:
+
+                if operator == EQUAL:
+
+                    if not str(data[column]["Data"][count]) == value:
+                        continue
+
+                if operator == NOT_EQUAL:
+
+                    if not str(data[column]["Data"][count]) != value:
+                        continue
+
+                if operator == GREATER:
+
+                    if not str(data[column]["Data"][count]) > value:
+                        continue
+
+                if operator == LESS:
+
+                    if not str(data[column]["Data"][count]) < value:
+                        continue
+
+                if operator == GREATER_EQUAL:
+
+                    if not str(data[column]["Data"][count]) >= value:
+                        continue
+
+                if operator == LESS_EQUAL:
+
+                    if not str(data[column]["Data"][count]) <= value:
+                        continue
+
+            for dataIndex in range(len(columnList)):
+
+                rowStatement += str(data[columnList[dataIndex]]["Data"][count]) + " | "
+
+            rowList.append(rowStatement[:-2])
+
+        return tableHeader[:-2], rowList
+
+    def __parseWhereStatements(self, condition):
+
+        # Variables
+        column = None
+        operator = None
+        value = None
+
+        condition = condition.split(" ")
+
+        column = condition[0]
+        operator = condition[1]
+        value = condition[2]
+
+        return column, operator, value
