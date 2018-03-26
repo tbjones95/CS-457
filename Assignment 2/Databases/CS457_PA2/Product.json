@@ -1,0 +1,32 @@
+{
+    "pid": {
+        "Datatype": "int", 
+        "Data": [
+            "1", 
+            "2", 
+            "3", 
+            "4", 
+            "5"
+        ]
+    }, 
+    "name": {
+        "Datatype": "varchar(20)", 
+        "Data": [
+            "'Gizmo'", 
+            "'PowerGizmo'", 
+            "'SingleTouch'", 
+            "'MultiTouch'", 
+            "'SuperGizmo'"
+        ]
+    }, 
+    "price": {
+        "Datatype": "float", 
+        "Data": [
+            "19.99", 
+            "29.99", 
+            "149.99", 
+            "199.99", 
+            "49.99"
+        ]
+    }
+}

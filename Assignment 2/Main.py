@@ -32,9 +32,8 @@ def main():
 
                 # Get rid of space in the front of the query
                 query= query[1:]
-                print query
+                database.onecmd(query)
                 query = empty
-                #database.onecmd()
 
             elif stripped == '.EXIT':
                 print "Program ending"

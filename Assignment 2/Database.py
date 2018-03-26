@@ -3,11 +3,12 @@
 # Version: 1.0
 
 # Import Libraries
-import sys, os, shutil, json
+import sys, os, shutil, json, re
 from cmd import Cmd
 from time import gmtime, strftime
 from GlobalVars import *
 from pprint import pprint
+from collections import OrderedDict
 
 # Globals
 DATABASE_DIR = os.getcwd() + "/Databases"
@@ -216,7 +217,20 @@ class databaseShell(Cmd):
             return
 
         # Get table name from current DB
-        query = arg.split(" ")
+        # Potential way to clean up this shitty query structure from the test file
+
+        # First replace all spaces with a temporary character &
+        tempStr = arg.replace(" ", '&')
+
+        # Second strip all tabs, spaces, endlines etc
+        tempStrTwo = "".join(tempStr.split())
+
+        # Third replace all special characters with spaces
+        tempStrThree = tempStrTwo.replace('&', " ")
+
+        # Finally, split on spaces
+        query = tempStrThree.split(" ")
+
         tableName = query[1]
         tableFile = CURRENT_DB_DIR + "/" + tableName + ".json"
 
@@ -228,26 +242,30 @@ class databaseShell(Cmd):
             print "-- !Failed: Table doesn't exist"
             return
 
-        if query[2] == VALUES:
-            print query[4]
+        if query[2].startswith(VALUES):
 
-            '''
+            # Get just the values by splitting the string on the (
+            temp = tempStrThree.split('(')
+
+            # Split the values up
+            values = temp[1].split(',')
+
+            # Before we do anything else, clean up the last value by removing the
+            # trailing );
+            values[len(values) - 1] = values[len(values) - 1][:-2]
+            valIndex = 0
+
             with open(tableFile, "r") as dataFile:
-                data = json.load(dataFile)
+                data = json.load(dataFile, object_pairs_hook=OrderedDict)
 
-            colName = query[3]
-            val = query[4].replace(";", "")
-
-            if colName in data:
-                print "-- !Failed: Column already exists"
-                return
-
-            data[colName] = {"type": val, "data": []}
+                for key, value in data.items():
+                    value['Data'].append(values[valIndex])
+                    valIndex += 1
 
             with open(tableFile, "w") as dataFile:
-                json.dump(data, dataFile, indent = 4, sort_keys = True)
-                print "-- Success: Column " + colName + " " + val + " added to table"
-            '''
+                json.dump(data, dataFile, indent = 4)
+                print "-- Success: Inserted values into table " + tableName
+
     def emptyline(self):
 
         # Variables
@@ -335,7 +353,7 @@ class databaseShell(Cmd):
         columnList = None
         column = []
         count = None
-        tableInfo = {}
+        tableInfo = OrderedDict()
 
         # Split the arguments
         arg = arg[:-1].split(' ', 2)
@@ -386,7 +404,7 @@ class databaseShell(Cmd):
 
         # Dump table information into json file
         with open(tablePath, 'w') as outfile:
-            json.dump(tableInfo, outfile, indent = 4, sort_keys = True)
+            json.dump(tableInfo, outfile, indent = 4)
 
         # Add table to database file
         with open(databaseFile, 'r') as outfile:
