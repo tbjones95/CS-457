@@ -288,6 +288,10 @@ class databaseShell(Cmd):
         tableName = arg[0]
         tablePath = CURRENT_DB_DIR + "/" + tableName + ".json"
 
+        # Test to see if the table exist
+        if os.path.exists(tablePath):
+            print "-- !Failed: No Table with name " + tableName + " exists"
+
         # Gather table data
         with open(tablePath, 'r') as table:
             data = json.load(table, object_pairs_hook=OrderedDict)
@@ -338,6 +342,10 @@ class databaseShell(Cmd):
         tableName = arg[0]
         tablePath = CURRENT_DB_DIR + "/" + tableName + ".json"
 
+        # Test to see if the table exist
+        if os.path.exists(tablePath):
+            print "-- !Failed: No Table with name " + tableName + " exists"
+
         # Strip the where statement
         arg = arg[1].split(" where ")
 
@@ -361,6 +369,68 @@ class databaseShell(Cmd):
 
         # Print results
         print str(recordsChanged) + " record modified."
+
+    def do_delete(self, arg):
+
+        # Variables
+        tableName = None
+        tablePath = None
+        condition = None
+        data = None
+        columnList = None
+        recordsChanged = None
+
+        # Check if database has been selected
+        if CURRENT_DB_DIR == DATABASE_DIR:
+            print "-- !Failed: No Database is being used"
+            return
+
+        # Start striping away the command
+        arg = arg[:-1].split("from ")
+
+        # Test for the correct syntax
+        if not len(arg) == 2:
+            print "-- !Failed: Incorrect select syntax"
+            return
+
+        # Strip the tables name and condition
+        arg = arg[1].split(" where ")
+
+        # Test for the correct syntax
+        if not len(arg) == 2:
+            print "-- !Failed: Incorrect select syntax"
+            return
+
+        # Assign the table name and table path
+        tableName = arg[0]
+        tablePath = CURRENT_DB_DIR + "/" + tableName + ".json"
+
+        # Test to see if the table exist
+        if os.path.exists(tablePath):
+            print "-- !Failed: No Table with name " + tableName + " exists"
+
+        # Assign the condition of deleting
+        condition = arg[1]
+
+        # Gather table data
+        with open(tablePath, 'r') as table:
+            data = json.load(table, object_pairs_hook=OrderedDict)
+
+        columnList = []
+
+        # Gather all columns within the table
+        for column, datatype in data.iteritems():
+
+            columnList.append(column)
+
+        recordsChanged = self.__deleteData(data, condition, columnList)
+
+        # Update table data
+        with open(tablePath, 'w') as table:
+            json.dump(data, table, indent = 4, sort_keys = True)
+
+        # Print results
+        print str(recordsChanged) + " records deleted."
 
     def do_EXIT(self, arg):
 
@@ -713,6 +783,74 @@ class databaseShell(Cmd):
                 recordsChanged += 1
 
         # Return results
+        return recordsChanged
+
+    def __deleteData(self, data, condition, columnList):
+
+        # Variables
+        column = None
+        operator = None
+        value = None
+        dataSize = None
+        count = 0
+        recordsChanged = 0
+
+        # Parse the conditional statement
+        column, operator, value = self.__parseWhereStatements(condition)
+
+        # Remove quotes from both values
+        value = value.replace("'", "")
+
+        # Get data size
+        dataSize = len(data[column]["Data"])
+
+        # Gather data from each column
+        while count < dataSize:
+
+            if operator == EQUAL:
+
+                if not str(data[column]["Data"][count]) == value:
+                    count += 1
+                    continue
+
+            elif operator == NOT_EQUAL:
+
+                if not str(data[column]["Data"][count]) != value:
+                    count += 1
+                    continue
+
+            elif operator == GREATER:
+
+                if not str(data[column]["Data"][count]) > value:
+                    count += 1
+                    continue
+
+            elif operator == LESS:
+
+                if not str(data[column]["Data"][count]) < value:
+                    count += 1
+                    continue
+
+            elif operator == GREATER_EQUAL:
+
+                if not str(data[column]["Data"][count]) >= value:
+                    count += 1
+                    continue
+
+            elif operator == LESS_EQUAL:
+
+                if not str(data[column]["Data"][count]) <= value:
+                    count += 1
+                    continue
+
+
+            for dataIndex in range(len(columnList)):
+
+                data[columnList[dataIndex]]["Data"].pop(count)
+
+            dataSize -= 1
+            recordsChanged += 1
+
         return recordsChanged
 
     def __parseWhereStatements(self, condition):
