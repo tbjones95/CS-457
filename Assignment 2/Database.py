@@ -289,8 +289,9 @@ class databaseShell(Cmd):
         tablePath = CURRENT_DB_DIR + "/" + tableName + ".json"
 
         # Test to see if the table exist
-        if os.path.exists(tablePath):
+        if not os.path.exists(tablePath):
             print "-- !Failed: No Table with name " + tableName + " exists"
+            return
 
         # Gather table data
         with open(tablePath, 'r') as table:
@@ -343,8 +344,9 @@ class databaseShell(Cmd):
         tablePath = CURRENT_DB_DIR + "/" + tableName + ".json"
 
         # Test to see if the table exist
-        if os.path.exists(tablePath):
+        if not os.path.exists(tablePath):
             print "-- !Failed: No Table with name " + tableName + " exists"
+            return
 
         # Strip the where statement
         arg = arg[1].split(" where ")
@@ -406,8 +408,9 @@ class databaseShell(Cmd):
         tablePath = CURRENT_DB_DIR + "/" + tableName + ".json"
 
         # Test to see if the table exist
-        if os.path.exists(tablePath):
+        if not os.path.exists(tablePath):
             print "-- !Failed: No Table with name " + tableName + " exists"
+            return
 
         # Assign the condition of deleting
         condition = arg[1]
@@ -800,6 +803,7 @@ class databaseShell(Cmd):
 
         # Remove quotes from both values
         value = value.replace("'", "")
+        value = self.__convertInputValue(value, data[column]["Datatype"])
 
         # Get data size
         dataSize = len(data[column]["Data"])
@@ -809,37 +813,37 @@ class databaseShell(Cmd):
 
             if operator == EQUAL:
 
-                if not str(data[column]["Data"][count]) == value:
+                if not data[column]["Data"][count] == value:
                     count += 1
                     continue
 
             elif operator == NOT_EQUAL:
 
-                if not str(data[column]["Data"][count]) != value:
+                if not data[column]["Data"][count] != value:
                     count += 1
                     continue
 
             elif operator == GREATER:
 
-                if not str(data[column]["Data"][count]) > value:
+                if not data[column]["Data"][count] > value:
                     count += 1
                     continue
 
             elif operator == LESS:
 
-                if not str(data[column]["Data"][count]) < value:
+                if not data[column]["Data"][count] < value:
                     count += 1
                     continue
 
             elif operator == GREATER_EQUAL:
 
-                if not str(data[column]["Data"][count]) >= value:
+                if not data[column]["Data"][count] >= value:
                     count += 1
                     continue
 
             elif operator == LESS_EQUAL:
 
-                if not str(data[column]["Data"][count]) <= value:
+                if not data[column]["Data"][count] <= value:
                     count += 1
                     continue
 
@@ -867,3 +871,17 @@ class databaseShell(Cmd):
         value = condition[2]
 
         return column, operator, value
+
+    def __convertInputValue(self, value, datatype):
+
+        # Variables
+
+        # Test for the correct datatype
+        if datatype.startswith("varchar"):
+            return str(value)
+
+        elif datatype.startswith("int"):
+            return int(value)
+
+        elif datatype.startswith("float"):
+            return float(value)
