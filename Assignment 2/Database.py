@@ -302,6 +302,7 @@ class databaseShell(Cmd):
 
                 columnList.append(column)
 
+        # Gather table results
         tableHeader, rowList = self.__gatherTableData(columnList, data, condition)
 
         # Print results
@@ -310,6 +311,56 @@ class databaseShell(Cmd):
         for count in range(len(rowList)):
 
             print rowList[count]
+
+    def do_update(self, arg):
+
+        # Variables
+        tableName = None
+        tablePath = None
+        data = None
+        startingValue = None
+        endingValue = None
+        recordsChanged = None
+
+        # Check if database has been selected
+        if CURRENT_DB_DIR == DATABASE_DIR:
+            print "-- !Failed: No Database is being used"
+            return
+
+        # Strip what columns the user wants
+        arg = arg[:-1].split(" set ")
+
+        # Test for the correct syntax
+        if not len(arg) == 2:
+            print "-- !Failed: Incorrect select syntax"
+            return
+
+        tableName = arg[0]
+        tablePath = CURRENT_DB_DIR + "/" + tableName + ".json"
+
+        # Strip the where statement
+        arg = arg[1].split(" where ")
+
+        # Test for the correct syntax
+        if not len(arg) == 2:
+            print "-- !Failed: Incorrect select syntax"
+            return
+
+        startingValue = arg[0]
+        endingValue = arg[1]
+
+        # Gather table data
+        with open(tablePath, 'r') as table:
+            data = json.load(table, object_pairs_hook=OrderedDict)
+
+        recordsChanged = self.__UpdateTable(data, startingValue, endingValue)
+
+        # Update table data
+        with open(tablePath, 'w') as table:
+            json.dump(data, table, indent = 4, sort_keys = True)
+
+        # Print results
+        print str(recordsChanged) + " record modified."
 
     def do_EXIT(self, arg):
 
@@ -629,6 +680,40 @@ class databaseShell(Cmd):
             rowList.append(rowStatement[:-2])
 
         return tableHeader[:-2], rowList
+
+    def __UpdateTable(self, data, startingValue, endingValue):
+
+        # Variables
+        setColumn = None
+        setOperator = None
+        setValue = None
+        conditionColumn = None
+        conditionOperator = None
+        conditionValue = None
+        dataSize = None
+        count = None
+        recordsChanged = 0
+
+        # Parse both set and condition statements
+        setColumn, setOperator, setValue = self.__parseWhereStatements(startingValue)
+        conditionColumn, conditionOperator, conditionValue = self.__parseWhereStatements(endingValue)
+
+        # Remove quotes from both values
+        setValue = setValue.replace("'", "")
+        conditionValue = conditionValue.replace("'", "")
+
+        # Get data size
+        dataSize = len(data[conditionColumn]["Data"])
+
+        # Loop through column which is being tested
+        for count in range(dataSize):
+
+            if data[conditionColumn]["Data"][count] == conditionValue:
+                data[setColumn]["Data"][count] = setValue
+                recordsChanged += 1
+
+        # Return results
+        return recordsChanged
 
     def __parseWhereStatements(self, condition):
 
