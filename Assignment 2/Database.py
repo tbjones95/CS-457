@@ -204,7 +204,7 @@ class databaseShell(Cmd):
         if not self.__checkSyntax(arg):
             return
 
-    def do_INSERT(self, arg):
+    def do_insert(self, arg):
         # Variables
 
         # Check syntax
@@ -216,20 +216,17 @@ class databaseShell(Cmd):
             print "-- !Failed: No Database is being used"
             return
 
-        # Get table name from current DB
-        # Potential way to clean up this shitty query structure from the test file
-
         # First replace all spaces with a temporary character &
-        tempStr = arg.replace(" ", '&')
+        tempStr = arg.replace(' ', '&')
 
         # Second strip all tabs, spaces, endlines etc
         tempStrTwo = "".join(tempStr.split())
 
         # Third replace all special characters with spaces
-        tempStrThree = tempStrTwo.replace('&', " ")
+        tempStrThree = tempStrTwo.replace('&', ' ')
 
         # Finally, split on spaces
-        query = tempStrThree.split(" ")
+        query = tempStrThree.split(' ')
 
         tableName = query[1]
         tableFile = CURRENT_DB_DIR + "/" + tableName + ".json"
@@ -259,7 +256,11 @@ class databaseShell(Cmd):
                 data = json.load(dataFile, object_pairs_hook=OrderedDict)
 
                 for key, value in data.items():
-                    value['Data'].append(values[valIndex])
+
+                    # Clean up variable before adding
+                    cleanVar = self.__cleanVariable(values[valIndex])
+
+                    value['Data'].append(cleanVar)
                     valIndex += 1
 
             with open(tableFile, "w") as dataFile:
@@ -518,3 +519,14 @@ class databaseShell(Cmd):
         # If table does exist, delete the Failed
         else:
             print "-- !Failed: Table " + tableName + " doesn't exist"
+
+    def __cleanVariable(self,arg):
+
+        # Variables
+
+        # The arg given will be any variable, remove any unneeded characters, spaces, and tabs
+        cleanVar = "".join(arg.split())
+
+        cleanVar = cleanVar.replace("'", "")
+
+        return cleanVar
