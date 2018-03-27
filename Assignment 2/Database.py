@@ -99,7 +99,6 @@ class databaseShell(Cmd):
         else:
             print "-- !Failed: No db with name " + dbName + " exists"
 
-    # ALTER TABLE tab_1 ADD colName datatype, ALTER TABLE tab_1 DROP COLUMN colName, ALTER TABLE tab_1 ALTER COLUMN colName datatype
     def do_ALTER(self, arg):
 
         # Variables
@@ -122,6 +121,7 @@ class databaseShell(Cmd):
             print "-- !Failed: Table doesn't exist"
             return
 
+        # If we are adding a column
         if query[2] == ADD:
             with open(tableFile, "r") as dataFile:
                 data = json.load(dataFile)
@@ -139,6 +139,7 @@ class databaseShell(Cmd):
                 json.dump(data, dataFile, indent = 4, sort_keys = True)
                 print "-- Success: Column " + colName + " " + val + " added to table"
 
+        # If we are dropping a column
         elif query[2] == DROP and query[3] == COLUMN:
             with open(tableFile, "r") as dataFile:
                 data = json.load(dataFile)
@@ -153,6 +154,7 @@ class databaseShell(Cmd):
             else:
                 print "-- !Failed: No column with the name " + query[4] + " exists in the table"
 
+        # If we are altering a columns contents
         elif query[2] == ALTER and query[3] == COLUMN:
             with open(tableFile, "r") as dataFile:
                 data = json.load(dataFile)
@@ -170,6 +172,7 @@ class databaseShell(Cmd):
             else:
                 print "-- !Failed: No column with the name " + query[4] + " exists in the table"
 
+        # Otherwise it is a bad alter command, throw error then exit
         else:
             print "-- !Failed: Not a valid ALTER command"
             return
@@ -216,6 +219,11 @@ class databaseShell(Cmd):
             print "-- !Failed: No Database is being used"
             return
 
+        # The following three steps are to clear out any unwanted characters
+        # from the insert command. This will wipe out any tabs, new lines, etc.
+        # It does maintain spaces however, since the JSON .dump wipes out spaces
+        # before inserting them.
+
         # First replace all spaces with a temporary character &
         tempStr = arg.replace(' ', '&')
 
@@ -231,14 +239,17 @@ class databaseShell(Cmd):
         tableName = query[1]
         tableFile = CURRENT_DB_DIR + "/" + tableName + ".json"
 
+        # If into isnt immediately after throw error and exit, not a valid command.
         if query[0] != INTO:
             print "-- Failed: Incorrect INSERT statement, missing INTO"
             return
 
+        # If the table doesnt exist throw an error then exit
         if not os.path.isfile(tableFile):
             print "-- !Failed: Table doesn't exist"
             return
 
+        # If the command following the table name is Values, continue
         if query[2].startswith(VALUES):
 
             # Get just the values by splitting the string on the (
@@ -252,25 +263,31 @@ class databaseShell(Cmd):
             values[len(values) - 1] = values[len(values) - 1][:-2]
             valIndex = 0
 
+            # Open the table and get the data
             with open(tableFile, "r") as dataFile:
                 data = json.load(dataFile, object_pairs_hook=OrderedDict)
 
+                # Loop through the table and insert the new information to each column
                 for key, value in data.items():
 
                     # Clean up variable before adding
                     cleanVar = self.__cleanVariable(values[valIndex])
 
-                    value['Data'].append(cleanVar)
+                    # Convert to the proper datatype based on the type
+                    newVal = self.__convertInputValue(cleanVar, value['Datatype'])
+
+                    # Append to table
+                    value['Data'].append(newVal)
                     valIndex += 1
 
+            # Dump information back into the table file
             with open(tableFile, "w") as dataFile:
                 json.dump(data, dataFile, indent = 4)
                 print "-- Success: 1 new record inserted"
 
-    def emptyline(self):
-
-                json.dump(data, dataFile, indent = 4, sort_keys = True)
-                print "-- Success: Column " + colName + " " + val + " added to table"
+        else:
+            print "-- Failed: Missing VALUES from INSERT command"
+            return
 
     def do_select(self, arg):
 
@@ -362,6 +379,7 @@ class databaseShell(Cmd):
             print "-- !Failed: Incorrect select syntax"
             return
 
+        # Get table name and build the path to the table
         tableName = arg[0]
         tablePath = CURRENT_DB_DIR + "/" + tableName + ".json"
 
@@ -460,7 +478,7 @@ class databaseShell(Cmd):
     def do_EXIT(self, arg):
 
         # Variables
-
+        # This is depracated since we got rid of the command shell, leaving it in in case we go back to it
         return -1
 
     def emptyline(self):
@@ -501,9 +519,9 @@ class databaseShell(Cmd):
 
         # Pull database information
         databaseInfo = {
-                        "Database Name" : dbName,
-                        "Date" : date,
-                        "Tables" : []
+                            "Database Name" : dbName,
+                            "Date" : date,
+                            "Tables" : []
                         }
 
         # Dump database information into json file
@@ -586,9 +604,9 @@ class databaseShell(Cmd):
 
             tableInfo.update({
                                 column[0] : {
-                                    "Datatype" : column[1],
-                                    "Data" : []
-                                }
+                                                "Datatype" : column[1],
+                                                "Data" : []
+                                            }
                             })
 
         # Dump table information into json file
@@ -606,6 +624,8 @@ class databaseShell(Cmd):
 
         print "-- Success: Table " + tableName + " created"
 
+    # This function tests whether any create commadn has the correect syntax.
+    # If it doesn't it will return false and the create function will be terminated
     def __testCreateSyntax(self, command):
 
         # Variables
