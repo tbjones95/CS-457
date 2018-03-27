@@ -265,19 +265,209 @@ class databaseShell(Cmd):
 
             with open(tableFile, "w") as dataFile:
                 json.dump(data, dataFile, indent = 4)
-                print "-- Success: Inserted values into table " + tableName
+                print "-- Success: 1 new record inserted"
 
     def emptyline(self):
 
-        # Variables
+                json.dump(data, dataFile, indent = 4, sort_keys = True)
+                print "-- Success: Column " + colName + " " + val + " added to table"
 
-        pass
+    def do_select(self, arg):
+
+        # Variables
+        columnList = None
+        tableName = None
+        tablePath = None
+        condition = None
+        data = None
+        count = None
+        tableHeader = None
+        rowList = None
+
+        # Check if database has been selected
+        if CURRENT_DB_DIR == DATABASE_DIR:
+            print "-- !Failed: No Database is being used"
+            return
+
+        # Strip what columns the user wants
+        arg = arg[:-1].split(" from ")
+
+        # Test for the correct syntax
+        if not len(arg) == 2:
+            print "-- !Failed: Incorrect select syntax"
+            return
+
+        # Strip column list
+        columnList = arg[0].split(", ")
+
+        # Strip the where statement
+        arg = arg[1].split(" where ")
+
+        if len(arg) == 2:
+            condition = arg[1]
+
+        # Assign table name
+        tableName = arg[0]
+        tablePath = CURRENT_DB_DIR + "/" + tableName + ".json"
+
+        # Test to see if the table exist
+        if not os.path.exists(tablePath):
+            print "-- !Failed: No Table with name " + tableName + " exists"
+            return
+
+        # Gather table data
+        with open(tablePath, 'r') as table:
+            data = json.load(table, object_pairs_hook=OrderedDict)
+
+        # Gather column list for *
+        if columnList[0].startswith(STAR):
+
+            columnList = []
+
+            # Create table header and get column lists
+            for column, datatype in data.iteritems():
+
+                columnList.append(column)
+
+        # Gather table results
+        tableHeader, rowList = self.__gatherTableData(columnList, data, condition)
+
+        # Print results
+        print "-- " + tableHeader
+
+        for count in range(len(rowList)):
+
+            print "-- " + rowList[count]
+
+    def do_update(self, arg):
+
+        # Variables
+        tableName = None
+        tablePath = None
+        data = None
+        startingValue = None
+        endingValue = None
+        recordsChanged = None
+
+        # Check if database has been selected
+        if CURRENT_DB_DIR == DATABASE_DIR:
+            print "-- !Failed: No Database is being used"
+            return
+
+        # Strip what columns the user wants
+        arg = arg[:-1].split(" set ")
+
+        # Test for the correct syntax
+        if not len(arg) == 2:
+            print "-- !Failed: Incorrect select syntax"
+            return
+
+        tableName = arg[0]
+        tablePath = CURRENT_DB_DIR + "/" + tableName + ".json"
+
+        # Test to see if the table exist
+        if not os.path.exists(tablePath):
+            print "-- !Failed: No Table with name " + tableName + " exists"
+            return
+
+        # Strip the where statement
+        arg = arg[1].split(" where ")
+
+        # Test for the correct syntax
+        if not len(arg) == 2:
+            print "-- !Failed: Incorrect select syntax"
+            return
+
+        startingValue = arg[0]
+        endingValue = arg[1]
+
+        # Gather table data
+        with open(tablePath, 'r') as table:
+            data = json.load(table, object_pairs_hook=OrderedDict)
+
+        recordsChanged = self.__UpdateTable(data, startingValue, endingValue)
+
+        # Update table data
+        with open(tablePath, 'w') as table:
+            json.dump(data, table, indent = 4, sort_keys = True)
+
+        # Print results
+        print "-- " + str(recordsChanged) + " record modified."
+
+    def do_delete(self, arg):
+
+        # Variables
+        tableName = None
+        tablePath = None
+        condition = None
+        data = None
+        columnList = None
+        recordsChanged = None
+
+        # Check if database has been selected
+        if CURRENT_DB_DIR == DATABASE_DIR:
+            print "-- !Failed: No Database is being used"
+            return
+
+        # Start striping away the command
+        arg = arg[:-1].split("from ")
+
+        # Test for the correct syntax
+        if not len(arg) == 2:
+            print "-- !Failed: Incorrect select syntax"
+            return
+
+        # Strip the tables name and condition
+        arg = arg[1].split(" where ")
+
+        # Test for the correct syntax
+        if not len(arg) == 2:
+            print "-- !Failed: Incorrect select syntax"
+            return
+
+        # Assign the table name and table path
+        tableName = arg[0]
+        tablePath = CURRENT_DB_DIR + "/" + tableName + ".json"
+
+        # Test to see if the table exist
+        if not os.path.exists(tablePath):
+            print "-- !Failed: No Table with name " + tableName + " exists"
+            return
+
+        # Assign the condition of deleting
+        condition = arg[1]
+
+        # Gather table data
+        with open(tablePath, 'r') as table:
+            data = json.load(table, object_pairs_hook=OrderedDict)
+
+        columnList = []
+
+        # Gather all columns within the table
+        for column, datatype in data.iteritems():
+
+            columnList.append(column)
+
+        recordsChanged = self.__deleteData(data, condition, columnList)
+
+        # Update table data
+        with open(tablePath, 'w') as table:
+            json.dump(data, table, indent = 4, sort_keys = True)
+
+        # Print results
+        print "-- " + str(recordsChanged) + " records deleted."
 
     def do_EXIT(self, arg):
 
         # Variables
 
         return -1
+
+    def emptyline(self):
+
+        # Variables
+
+        pass
 
     def __checkSyntax(self, arg):
 
@@ -296,8 +486,6 @@ class databaseShell(Cmd):
         dbName = arg[:-1].split(" ")
         date = strftime("%Y-%m-%d %H:%M:%S", gmtime())
         databaseInfo = None
-        databaseDir = None
-        database = None
 
         # Place assign database
         dbName = dbName[1]
@@ -519,6 +707,210 @@ class databaseShell(Cmd):
         # If table does exist, delete the Failed
         else:
             print "-- !Failed: Table " + tableName + " doesn't exist"
+
+    def __gatherTableData(self, columnList, data, condition):
+
+        # Variables
+        count = None
+        dataSize = None
+        tableHeader = ""
+        rowStatement = None
+        rowList = []
+        column = None
+        operator = None
+        value = None
+
+        # Create table header and get column lists
+        for count in range(len(columnList)):
+
+            dataSize = len(data[columnList[count]]["Data"])
+
+            tableHeader += columnList[count] + " (" + data[columnList[count]]["Datatype"] + ") | "
+
+        # Parse condition statement
+        if not condition == None:
+            column, operator, value = self.__parseWhereStatements(condition)
+
+            value = self.__convertInputValue(value, data[column]["Datatype"])
+
+        # Gather data from each column
+        for count in range(dataSize):
+
+            rowStatement = ""
+
+            if not condition == None:
+
+                if operator == EQUAL:
+
+                    if not data[column]["Data"][count] == value:
+                        continue
+
+                if operator == NOT_EQUAL:
+
+                    if not data[column]["Data"][count] != value:
+                        continue
+
+                if operator == GREATER:
+
+                    if not data[column]["Data"][count] > value:
+                        continue
+
+                if operator == LESS:
+
+                    if not data[column]["Data"][count] < value:
+                        continue
+
+                if operator == GREATER_EQUAL:
+
+                    if not data[column]["Data"][count] >= value:
+                        continue
+
+                if operator == LESS_EQUAL:
+
+                    if not data[column]["Data"][count] <= value:
+                        continue
+
+            for dataIndex in range(len(columnList)):
+
+                rowStatement += str(data[columnList[dataIndex]]["Data"][count]) + " | "
+
+            rowList.append(rowStatement[:-2])
+
+        return tableHeader[:-2], rowList
+
+    def __UpdateTable(self, data, startingValue, endingValue):
+
+        # Variables
+        setColumn = None
+        setOperator = None
+        setValue = None
+        conditionColumn = None
+        conditionOperator = None
+        conditionValue = None
+        dataSize = None
+        count = None
+        recordsChanged = 0
+
+        # Parse both set and condition statements
+        setColumn, setOperator, setValue = self.__parseWhereStatements(startingValue)
+        conditionColumn, conditionOperator, conditionValue = self.__parseWhereStatements(endingValue)
+
+        # Remove quotes from both values
+        setValue = setValue.replace("'", "")
+        setValue = self.__convertInputValue(setValue, data[setColumn]["Datatype"])
+        conditionValue = conditionValue.replace("'", "")
+        conditionValue = self.__convertInputValue(conditionValue, data[conditionColumn]["Datatype"])
+
+        # Get data size
+        dataSize = len(data[conditionColumn]["Data"])
+
+        # Loop through column which is being tested
+        for count in range(dataSize):
+
+            if data[conditionColumn]["Data"][count] == conditionValue:
+                data[setColumn]["Data"][count] = setValue
+                recordsChanged += 1
+
+        # Return results
+        return recordsChanged
+
+    def __deleteData(self, data, condition, columnList):
+
+        # Variables
+        column = None
+        operator = None
+        value = None
+        dataSize = None
+        count = 0
+        recordsChanged = 0
+
+        # Parse the conditional statement
+        column, operator, value = self.__parseWhereStatements(condition)
+
+        # Remove quotes from both values
+        value = value.replace("'", "")
+        value = self.__convertInputValue(value, data[column]["Datatype"])
+
+        # Get data size
+        dataSize = len(data[column]["Data"])
+
+        # Gather data from each column
+        while count < dataSize:
+
+            if operator == EQUAL:
+
+                if not data[column]["Data"][count] == value:
+                    count += 1
+                    continue
+
+            elif operator == NOT_EQUAL:
+
+                if not data[column]["Data"][count] != value:
+                    count += 1
+                    continue
+
+            elif operator == GREATER:
+
+                if not data[column]["Data"][count] > value:
+                    count += 1
+                    continue
+
+            elif operator == LESS:
+
+                if not data[column]["Data"][count] < value:
+                    count += 1
+                    continue
+
+            elif operator == GREATER_EQUAL:
+
+                if not data[column]["Data"][count] >= value:
+                    count += 1
+                    continue
+
+            elif operator == LESS_EQUAL:
+
+                if not data[column]["Data"][count] <= value:
+                    count += 1
+                    continue
+
+
+            for dataIndex in range(len(columnList)):
+
+                data[columnList[dataIndex]]["Data"].pop(count)
+
+            dataSize -= 1
+            recordsChanged += 1
+
+        return recordsChanged
+
+    def __parseWhereStatements(self, condition):
+
+        # Variables
+        column = None
+        operator = None
+        value = None
+
+        condition = condition.split(" ")
+
+        column = condition[0]
+        operator = condition[1]
+        value = condition[2]
+
+        return column, operator, value
+
+    def __convertInputValue(self, value, datatype):
+
+        # Variables
+
+        # Test for the correct datatype
+        if datatype.startswith("varchar"):
+            return str(value)
+
+        elif datatype.startswith("int"):
+            return int(value)
+
+        elif datatype.startswith("float"):
+            return float(value)
 
     def __cleanVariable(self,arg):
 
