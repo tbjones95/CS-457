@@ -709,6 +709,8 @@ class databaseShell(Cmd):
         if not condition == None:
             column, operator, value = self.__parseWhereStatements(condition)
 
+            value = self.__convertInputValue(value, data[column]["Datatype"])
+
         # Gather data from each column
         for count in range(dataSize):
 
@@ -718,32 +720,32 @@ class databaseShell(Cmd):
 
                 if operator == EQUAL:
 
-                    if not str(data[column]["Data"][count]) == value:
+                    if not data[column]["Data"][count] == value:
                         continue
 
                 if operator == NOT_EQUAL:
 
-                    if not str(data[column]["Data"][count]) != value:
+                    if not data[column]["Data"][count] != value:
                         continue
 
                 if operator == GREATER:
 
-                    if not str(data[column]["Data"][count]) > value:
+                    if not data[column]["Data"][count] > value:
                         continue
 
                 if operator == LESS:
 
-                    if not str(data[column]["Data"][count]) < value:
+                    if not data[column]["Data"][count] < value:
                         continue
 
                 if operator == GREATER_EQUAL:
 
-                    if not str(data[column]["Data"][count]) >= value:
+                    if not data[column]["Data"][count] >= value:
                         continue
 
                 if operator == LESS_EQUAL:
 
-                    if not str(data[column]["Data"][count]) <= value:
+                    if not data[column]["Data"][count] <= value:
                         continue
 
             for dataIndex in range(len(columnList)):
@@ -773,7 +775,9 @@ class databaseShell(Cmd):
 
         # Remove quotes from both values
         setValue = setValue.replace("'", "")
+        setValue = self.__convertInputValue(setValue, data[setColumn]["Datatype"])
         conditionValue = conditionValue.replace("'", "")
+        conditionValue = self.__convertInputValue(conditionValue, data[conditionColumn]["Datatype"])
 
         # Get data size
         dataSize = len(data[conditionColumn]["Data"])
