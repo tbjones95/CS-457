@@ -305,6 +305,7 @@ class databaseShell(Cmd):
         tableKey = None
         tablePath = None
         newColumnName = None
+        columns = []
         tableHeader = None
         rowList = None
         count = None
@@ -379,9 +380,12 @@ class databaseShell(Cmd):
 
             if not tableKey == None:
 
+                columns.append([])
+
                 for column, datatype in data.iteritems():
 
                     newColumnName = tableKey + '.' + column
+                    columns[count].append(newColumnName)
                     modifiedData[newColumnName] = data.pop(column)
             else:
                 modifiedData.update(data)
@@ -398,10 +402,10 @@ class databaseShell(Cmd):
 
         # Test for inner join flag
         if innerJoin:
-            tableHeader, rowList = self.__gatherTableData(columnList, rawData, modifiedData, condition)
+            tableHeader, rowList = self.__gatherTableData(columnList, columns, rawData, modifiedData, condition)
 
         else:
-            tableHeader, rowList = self.__gatherTableData(columnList, rawData, modifiedData, condition)
+            tableHeader, rowList = self.__gatherTableData(columnList, columns, rawData, modifiedData, condition)
 
         # Print results
         print "-- " + tableHeader
@@ -793,7 +797,7 @@ class databaseShell(Cmd):
         else:
             print "-- !Failed: Table " + tableName + " doesn't exist"
 
-    def __gatherTableData(self, columnList, rawData, modifiedData, condition):
+    def __gatherTableData(self, columnList, columns, rawData, modifiedData, condition):
 
         # Variables
         twoColumns = False
@@ -856,9 +860,11 @@ class databaseShell(Cmd):
                         if not modifiedData[column]["Data"][index] <= modifiedData[value]["Data"][count]:
                             continue
 
-                    for dataIndex in range(len(columnList)):
+                    for colIndex in range(len(columns[0])):
+                        rowStatement += str(rawData[columnList[colIndex]]["Data"][index]) + " | "
 
-                        rowStatement += str(rawData[columnList[dataIndex]]["Data"][count]) + " | "
+                    for colIndex in range(len(columns[1])):
+                        rowStatement += str(rawData[columnList[colIndex + len(columns[0])]]["Data"][count]) + " | "
 
                     rowList.append(rowStatement[:-2])
 
@@ -896,7 +902,6 @@ class databaseShell(Cmd):
                             continue
 
                 for dataIndex in range(len(columnList)):
-
                     rowStatement += str(rawData[columnList[dataIndex]]["Data"][count]) + " | "
 
                 rowList.append(rowStatement[:-2])
