@@ -3,7 +3,7 @@
 # Version: 2.0
 
 # Import Libraries
-import sys, os, shutil, json, re
+import sys, os, shutil, json, re, collections
 from cmd import Cmd
 from time import gmtime, strftime
 from GlobalVars import *
@@ -21,7 +21,7 @@ class databaseShell(Cmd):
     def __init__(self):
         Cmd.__init__(self)
         self.prompt = ":> "
-        self.intro  = "Welcome to Assignment 2!"
+        self.intro  = "Welcome to Assignment 3!"
 
     def preloop(self):
 
@@ -39,7 +39,7 @@ class databaseShell(Cmd):
 
         print "-- !Failed: Incorrect command."
 
-    def do_CREATE(self, arg):
+    def do_create(self, arg):
 
         # Variables
 
@@ -56,7 +56,7 @@ class databaseShell(Cmd):
 
             self.__createTable(arg)
 
-    def do_DROP(self, arg):
+    def do_drop(self, arg):
 
         # Variables
 
@@ -73,7 +73,7 @@ class databaseShell(Cmd):
 
             self.__dropTable(arg)
 
-    def do_USE(self, arg):
+    def do_use(self, arg):
 
         # Variables
         global CURRENT_DB_DIR
@@ -99,7 +99,7 @@ class databaseShell(Cmd):
         else:
             print "-- !Failed: No db with name " + dbName + " exists"
 
-    def do_ALTER(self, arg):
+    def do_alter(self, arg):
 
         # Variables
 
@@ -177,6 +177,7 @@ class databaseShell(Cmd):
             print "-- !Failed: Not a valid ALTER command"
             return
 
+    # This is depricated. The newer version of do_select is handled below
     def do_SELECT(self, arg):
 
         # Variables
@@ -236,7 +237,7 @@ class databaseShell(Cmd):
         # Finally, split on spaces
         query = tempStrThree.split(' ')
 
-        tableName = query[1]
+        tableName = query[1].lower()
         tableFile = CURRENT_DB_DIR + "/" + tableName + ".json"
 
         # If into isnt immediately after throw error and exit, not a valid command.
@@ -306,6 +307,19 @@ class databaseShell(Cmd):
             print "-- !Failed: No Database is being used"
             return
 
+        #####
+        # Check for left out join, if it exists, ship this off to that handler
+        #####
+        # Try to split on " left outer join "
+        tempStr = arg.split(" left outer join ")
+
+        # If the split was successful, send to handler
+        if len(tempStr) > 1:
+            self.__leftOuterJoin(arg)
+            return
+
+        #####
+
         # Strip what columns the user wants
         arg = arg[:-1].split(" from ")
 
@@ -324,7 +338,7 @@ class databaseShell(Cmd):
             condition = arg[1]
 
         # Assign table name
-        tableName = arg[0]
+        tableName = arg[0].lower()
         tablePath = CURRENT_DB_DIR + "/" + tableName + ".json"
 
         # Test to see if the table exist
@@ -380,7 +394,7 @@ class databaseShell(Cmd):
             return
 
         # Get table name and build the path to the table
-        tableName = arg[0]
+        tableName = arg[0].lower()
         tablePath = CURRENT_DB_DIR + "/" + tableName + ".json"
 
         # Test to see if the table exist
@@ -444,7 +458,7 @@ class databaseShell(Cmd):
             return
 
         # Assign the table name and table path
-        tableName = arg[0]
+        tableName = arg[0].lower()
         tablePath = CURRENT_DB_DIR + "/" + tableName + ".json"
 
         # Test to see if the table exist
@@ -506,7 +520,7 @@ class databaseShell(Cmd):
         databaseInfo = None
 
         # Place assign database
-        dbName = dbName[1]
+        dbName = dbName[1].lower()
         databasePath = DATABASE_DIR + "/" + dbName + "/"
 
         # Check for a database folder
@@ -564,7 +578,6 @@ class databaseShell(Cmd):
 
         # Split the arguments
         arg = arg[:-1].split(' ', 2)
-        tableName = arg[1]
 
         # Test for correct syntax
         if not len(arg) == 3 or arg[1] == '' or arg[2] == '':
@@ -572,8 +585,21 @@ class databaseShell(Cmd):
             return
 
         if not arg[2].startswith('(') or not arg[2].endswith(')'):
-            print "-- !Failed: Incorrect Column Configurations"
-            return
+            # Fix no space after Table name problem
+            temp = arg[1].split('(')
+
+            # If it split into 2 pieces there was no space after the table name and we can fix it
+            # otherwise throw error
+            if len(temp) == 2:
+                arg[1] = temp[0]
+                arg[2] = "(" + temp[1] + " " + arg[2]
+
+            else:
+                print "-- !Failed: Incorrect Column Configurations"
+                return
+
+        # Set table name after the fixes have been made
+        tableName = arg[1].lower()
 
         # Check if database has been selected
         if CURRENT_DB_DIR == DATABASE_DIR:
@@ -624,8 +650,6 @@ class databaseShell(Cmd):
 
         print "-- Success: Table " + tableName + " created"
 
-    # This function tests whether any create command has the correect syntax.
-    # If it doesn't it will return false and the create function will be terminated
     def __testCreateSyntax(self, command):
 
         # Variables
@@ -639,7 +663,7 @@ class databaseShell(Cmd):
         cmdCompents = command[:-1].split(' ', 2)
 
         # Test for either Database or Table
-        if cmdCompents[0] == "TABLE":
+        if cmdCompents[0] == TABLE:
 
             if not len(cmdCompents) == 3:
                 print "-- !Failed: Incorrect syntax."
@@ -649,13 +673,13 @@ class databaseShell(Cmd):
                 print "-- !Failed: Incorrect syntax."
                 return False
 
-            if not cmdCompents[2].startswith('(') or not cmdCompents[2].endswith(')'):
-                print "-- !Failed: Incorrect syntax."
-                return False
+            #if not cmdCompents[2].startswith('(') or not cmdCompents[2].endswith(')'):
+                #print "-- !Failed: Incorrect syntax."
+                #return False
 
             return True
 
-        if cmdCompents[0] == "DATABASE":
+        if cmdCompents[0] == DATABASE:
 
             # Test for the correct syntax
             if not len(cmdCompents) == 2:
@@ -702,7 +726,7 @@ class databaseShell(Cmd):
 
         # Variables
         arg = arg[:-1].split(' ', 2)
-        tableName = arg[1]
+        tableName = arg[1].lower()
         tablePath = CURRENT_DB_DIR + "/" + tableName + ".json"
         dbTablePath = CURRENT_DB_DIR + "/" + DB_NAME + ".json"
 
@@ -943,3 +967,137 @@ class databaseShell(Cmd):
         cleanVar = cleanVar.replace("'", "")
 
         return cleanVar
+
+    def __leftOuterJoin(self,arg):
+        # Variables
+
+        # Splie on left outer join
+        tempStr = arg.split(" left outer join ")
+
+        # Check for correct length of 2 items
+        if len(tempStr) > 2:
+            print "-- !Failed: left outer join statement has more than one left outer join"
+            return
+
+        # Split temp on spaces to get left side arguments
+        leftSideArgs = tempStr[0].split(" ")
+
+        # Left table will be 3rd arg, name will 4th
+        leftTable = leftSideArgs[2].lower()
+        leftTableName = leftSideArgs[3]
+
+        # Split the right side of temp on "on"
+        rightSide = tempStr[1].split(" on ")
+
+        # Right table info will be first arg, conditions will be second
+        rightTableInfo = rightSide[0].split(" ")
+        joinCondition = rightSide[1]
+
+        # Split the join items on the operator =. As of now that is the only join operator we will support
+        joinItems = joinCondition.split(" = ")
+
+        # Remove the ; from the end of the last string
+        joinItems[1] = joinItems[1][:-1]
+
+        # Split the join data on the . to get table and col name
+        leftJoinData = joinItems[0].split(".")
+        rightJoinData = joinItems[1].split(".")
+
+        # Set the values to be used for the join operation later after retrieving the table name
+        leftJoinTableName = leftJoinData[0].lower()
+        rightJoinTableName = rightJoinData[0].lower()
+        leftJoinCol = leftJoinData[1]
+        rightJoinCol = rightJoinData[1]
+
+        # Spit Right table info on space, left will be table, right will be names
+        rightTable = rightTableInfo[0].lower()
+        rightTableName = rightTableInfo[1]
+
+        # Build table paths
+        leftTablePath = CURRENT_DB_DIR + "/" + leftTable + ".json"
+        rightTablePath = CURRENT_DB_DIR + "/" + rightTable + ".json"
+
+        # Test to see if the tables exist
+        if not os.path.exists(leftTablePath):
+            print "-- !Failed: No Table with name " + leftTable + " exists"
+            return
+
+        if not os.path.exists(rightTablePath):
+            print "-- !Failed: No Table with name " + rightTable + " exists"
+            return
+
+        # Gather table data
+        with open(leftTablePath, 'r') as leftTbl:
+            leftTableData = json.load(leftTbl, object_pairs_hook=OrderedDict)
+
+        with open(rightTablePath, 'r') as rightTbl:
+            rightTableData = json.load(rightTbl, object_pairs_hook=OrderedDict)
+
+        # Building of the result header
+        colList = []
+        typeList = []
+
+        # Build the column Headers
+        for key, value in leftTableData.items():
+            colList.append(key)
+            typeList.append(value["Datatype"])
+
+        for key, value in rightTableData.items():
+            colList.append(key)
+            typeList.append(value["Datatype"])
+
+        headerList = self.__makeUniqueList(colList)
+
+        header = ""
+        headerIndex = 0
+
+        for item in headerList:
+            header = header + item + " " + typeList[headerIndex] + " | "
+            headerIndex += 1
+
+        print header
+
+        # Left outer joing does the following:
+        #   it selects all the items in the left table
+        #   and then it selects any of the items in the right table that
+        #   meet the join condition
+
+        leftPrimaryCol, leftSecondaryCol = leftTableData.items()
+        rightPrimaryCol, rightSecondaryCol = rightTableData.items()
+
+        index = 0
+        rowStr = ""
+        printedFlag = False
+
+        # Loop through primary id: 1,2,3
+        for item in leftTableData[leftJoinCol]["Data"]:
+            strOne = str(item) + " | "
+            strTwo = str(leftTableData[leftSecondaryCol[0]]["Data"][index]) + " | "
+            rowStr = strOne + strTwo
+
+            # Loop through secondary column looking for matches
+            for val in rightTableData[rightJoinCol]["Data"]:
+                if item == val:
+                    tempStrOne = str(val) + " | "
+                    tempStrTwo = str(rightTableData[rightSecondaryCol[0]]["Data"][index])
+
+                    print rowStr + tempStrOne + tempStrTwo
+
+                    printedFlag = True
+
+                    tempStrOne = ""
+                    tempStrTwo = ""
+
+            if not printedFlag:
+                print rowStr
+
+            printedFlag = False
+            index += 1
+            strOne = ""
+            strTwo = ""
+            rowStr = ""
+
+    def __makeUniqueList(self,seq):
+        seen = set()
+        seen_add = seen.add
+        return [x for x in seq if not (x in seen or seen_add(x))]
