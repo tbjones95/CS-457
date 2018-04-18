@@ -353,10 +353,6 @@ class databaseShell(Cmd):
             tableList = arg[0].split(" inner join ")
             innerJoin = True
 
-        elif "left outer join" in arg[0]:
-            tableList = arg[0].split(" left outer join ")
-            leftOutJoin = True
-
         else:
             tableList = arg[0].split(", ")
 
@@ -403,9 +399,6 @@ class databaseShell(Cmd):
         # Test for inner join flag
         if innerJoin:
             tableHeader, rowList = self.__gatherTableData(columnList, rawData, modifiedData, condition)
-
-        elif leftOutJoin:
-            pass
 
         else:
             tableHeader, rowList = self.__gatherTableData(columnList, rawData, modifiedData, condition)
@@ -1162,11 +1155,13 @@ class databaseShell(Cmd):
             strTwo = str(leftTableData[leftSecondaryCol[0]]["Data"][index]) + " | "
             rowStr = strOne + strTwo
 
+            innerindex = 0
+
             # Loop through secondary column looking for matches
             for val in rightTableData[rightJoinCol]["Data"]:
                 if item == val:
                     tempStrOne = str(val) + " | "
-                    tempStrTwo = str(rightTableData[rightSecondaryCol[0]]["Data"][index])
+                    tempStrTwo = str(rightTableData[rightSecondaryCol[0]]["Data"][innerindex])
 
                     print rowStr + tempStrOne + tempStrTwo
 
@@ -1174,6 +1169,7 @@ class databaseShell(Cmd):
 
                     tempStrOne = ""
                     tempStrTwo = ""
+                    innerindex += 1
 
             if not printedFlag:
                 print rowStr
