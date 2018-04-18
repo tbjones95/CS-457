@@ -22,6 +22,7 @@ class databaseShell(Cmd):
         Cmd.__init__(self)
         self.prompt = ":> "
         self.intro  = "Welcome to Assignment 2!"
+        self._tableNames = {}
 
     def preloop(self):
 
@@ -292,19 +293,26 @@ class databaseShell(Cmd):
     def do_select(self, arg):
 
         # Variables
-        columnList = None
-        tableName = None
-        tablePath = None
+        innerJoin = False
+        leftOutJoin = False
+        data = OrderedDict()
+        rawData = OrderedDict()
+        modifiedData = OrderedDict()
         condition = None
-        data = None
-        count = None
+        columnList = None
+        tableList = None
+        tableName = None
+        tableKey = None
+        tablePath = None
+        newColumnName = None
         tableHeader = None
         rowList = None
+        count = None
 
         # Check if database has been selected
         if CURRENT_DB_DIR == DATABASE_DIR:
             print "-- !Failed: No Database is being used"
-            return
+            exit()
 
         # Strip what columns the user wants
         arg = arg[:-1].split(" from ")
@@ -312,42 +320,82 @@ class databaseShell(Cmd):
         # Test for the correct syntax
         if not len(arg) == 2:
             print "-- !Failed: Incorrect select syntax"
-            return
+            exit()
 
         # Strip column list
         columnList = arg[0].split(", ")
 
-        # Strip the where statement
-        arg = arg[1].split(" where ")
+        if columnList[0].startswith(STAR):
+            columnList = []
 
+        # Update Statement
+        if "on" in arg[1]:
+            arg = arg[1].split(" on ")
+
+        else:
+            arg = arg[1].split(" where ")
+
+        # Strip table list
+        if "inner join" in arg[0]:
+            tableList = arg[0].split(" inner join ")
+            innerJoin = True
+
+        elif "left outer join" in arg[0]:
+            tableList = arg[0].split(" left outer join ")
+            leftOutJoin = True
+
+        else:
+            tableList = arg[0].split(", ")
+
+        # Strip the condition off
         if len(arg) == 2:
             condition = arg[1]
 
-        # Assign table name
-        tableName = arg[0]
-        tablePath = CURRENT_DB_DIR + "/" + tableName + ".json"
+        # Gather all data
+        for count in range(len(tableList)):
 
-        # Test to see if the table exist
-        if not os.path.exists(tablePath):
-            print "-- !Failed: No Table with name " + tableName + " exists"
-            return
+            # Strip Table name
+            if " " in tableList[count]:
+                tableName = tableList[count].split(" ")[0]
+                tableKey = tableList[count].split(" ")[1]
+            else:
+                tableName = tableList[count]
 
-        # Gather table data
-        with open(tablePath, 'r') as table:
-            data = json.load(table, object_pairs_hook=OrderedDict)
+            tablePath = CURRENT_DB_DIR + "/" + tableName + ".json"
 
-        # Gather column list for *
-        if columnList[0].startswith(STAR):
+            # Gather table data
+            with open(tablePath, 'r') as table:
+                data = json.load(table, object_pairs_hook=OrderedDict)
+                rawData.update(data)
 
-            columnList = []
+            if not tableKey == None:
+
+                for column, datatype in data.iteritems():
+
+                    newColumnName = tableKey + '.' + column
+                    modifiedData[newColumnName] = data.pop(column)
+            else:
+                modifiedData.update(data)
+
+            tableKey = None
+
+        # Gather Column List
+        if len(columnList) == 0:
 
             # Create table header and get column lists
-            for column, datatype in data.iteritems():
+            for column, datatype in rawData.iteritems():
 
                 columnList.append(column)
 
-        # Gather table results
-        tableHeader, rowList = self.__gatherTableData(columnList, data, condition)
+        # Test for inner join flag
+        if innerJoin:
+            tableHeader, rowList = self.__gatherTableData(columnList, rawData, modifiedData, condition)
+
+        elif leftOutJoin:
+            pass
+
+        else:
+            tableHeader, rowList = self.__gatherTableData(columnList, rawData, modifiedData, condition)
 
         # Print results
         print "-- " + tableHeader
@@ -729,10 +777,12 @@ class databaseShell(Cmd):
         else:
             print "-- !Failed: Table " + tableName + " doesn't exist"
 
-    def __gatherTableData(self, columnList, data, condition):
+    def __gatherTableData(self, columnList, rawData, modifiedData, condition):
 
         # Variables
+        twoColumns = False
         count = None
+        index = None
         dataSize = None
         tableHeader = ""
         rowStatement = None
@@ -744,58 +794,96 @@ class databaseShell(Cmd):
         # Create table header and get column lists
         for count in range(len(columnList)):
 
-            dataSize = len(data[columnList[count]]["Data"])
+            dataSize = len(rawData[columnList[count]]["Data"])
 
-            tableHeader += columnList[count] + " (" + data[columnList[count]]["Datatype"] + ") | "
+            tableHeader += columnList[count] + " (" + rawData[columnList[count]]["Datatype"] + ") | "
 
         # Parse condition statement
         if not condition == None:
             column, operator, value = self.__parseWhereStatements(condition)
 
-            value = self.__convertInputValue(value, data[column]["Datatype"])
+            if not value in modifiedData:
+                value = self.__convertInputValue(value, rawData[column]["Datatype"])
+            else:
+                twoColumns = True
 
-        # Gather data from each column
-        for count in range(dataSize):
+        # Test for two Columns to gather data the right way
+        if twoColumns:
 
-            rowStatement = ""
+            for index in range(dataSize):
 
-            if not condition == None:
+                for count in range(dataSize):
 
-                if operator == EQUAL:
+                    rowStatement = ""
 
-                    if not data[column]["Data"][count] == value:
-                        continue
+                    if operator == EQUAL:
+                        if not modifiedData[column]["Data"][index] == modifiedData[value]["Data"][count]:
+                            continue
 
-                if operator == NOT_EQUAL:
+                    if operator == NOT_EQUAL:
+                        if not modifiedData[column]["Data"][index] != modifiedData[value]["Data"][count]:
+                            continue
 
-                    if not data[column]["Data"][count] != value:
-                        continue
+                    if operator == GREATER:
+                        if not modifiedData[column]["Data"][index] > modifiedData[value]["Data"][count]:
+                            continue
 
-                if operator == GREATER:
+                    if operator == LESS:
+                        if not modifiedData[column]["Data"][index] < modifiedData[value]["Data"][count]:
+                            continue
 
-                    if not data[column]["Data"][count] > value:
-                        continue
+                    if operator == GREATER_EQUAL:
+                        if not modifiedData[column]["Data"][index] >= modifiedData[value]["Data"][count]:
+                            continue
 
-                if operator == LESS:
+                    if operator == LESS_EQUAL:
+                        if not modifiedData[column]["Data"][index] <= modifiedData[value]["Data"][count]:
+                            continue
 
-                    if not data[column]["Data"][count] < value:
-                        continue
+                    for dataIndex in range(len(columnList)):
 
-                if operator == GREATER_EQUAL:
+                        rowStatement += str(rawData[columnList[dataIndex]]["Data"][count]) + " | "
 
-                    if not data[column]["Data"][count] >= value:
-                        continue
+                    rowList.append(rowStatement[:-2])
 
-                if operator == LESS_EQUAL:
+        else:
 
-                    if not data[column]["Data"][count] <= value:
-                        continue
+            # Gather data from each column
+            for count in range(dataSize):
 
-            for dataIndex in range(len(columnList)):
+                rowStatement = ""
 
-                rowStatement += str(data[columnList[dataIndex]]["Data"][count]) + " | "
+                if not condition == None:
 
-            rowList.append(rowStatement[:-2])
+                    if operator == EQUAL:
+                        if not modifiedData[column]["Data"][count] == value:
+                            continue
+
+                    if operator == NOT_EQUAL:
+                        if not modifiedData[column]["Data"][count] != value:
+                            continue
+
+                    if operator == GREATER:
+                        if not modifiedData[column]["Data"][count] > value:
+                            continue
+
+                    if operator == LESS:
+                        if not modifiedData[column]["Data"][count] < value:
+                            continue
+
+                    if operator == GREATER_EQUAL:
+                        if not modifiedData[column]["Data"][count] >= value:
+                            continue
+
+                    if operator == LESS_EQUAL:
+                        if not modifiedData[column]["Data"][count] <= value:
+                            continue
+
+                for dataIndex in range(len(columnList)):
+
+                    rowStatement += str(rawData[columnList[dataIndex]]["Data"][count]) + " | "
+
+                rowList.append(rowStatement[:-2])
 
         return tableHeader[:-2], rowList
 
