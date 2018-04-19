@@ -3,7 +3,7 @@
 --Construct the database and table (0 points; expected to work from PA1)
 CREATE DATABASE CS457_PA3;
 USE CS457_PA3;
-create table Employee(id int, name varchar(10));
+create table Employee (id int, name varchar(10));
 create table Sales (employeeID int, productID int);
 
 --Insert new data (0 points; expected to work from PA2)
