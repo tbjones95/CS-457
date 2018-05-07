@@ -21,8 +21,9 @@ class databaseShell(Cmd):
     def __init__(self):
         Cmd.__init__(self)
         self.prompt = ":> "
-        self.intro  = "Welcome to Assignment 2!"
+        self.intro  = "Welcome to Assignment 4!"
         self._tableNames = {}
+        self.lock = None
 
     def preloop(self):
 
@@ -117,6 +118,11 @@ class databaseShell(Cmd):
         query = arg.split(" ")
         tableName = query[1]
         tableFile = CURRENT_DB_DIR + "/" + tableName + ".json"
+
+        # Test to make sure database isnt locked
+        if self.lock == True:
+            print "-- Failed: Table " + tableName + " is locked"
+            return
 
         if not os.path.isfile(tableFile):
             print "-- !Failed: Table doesn't exist"
@@ -239,6 +245,11 @@ class databaseShell(Cmd):
 
         tableName = query[1]
         tableFile = CURRENT_DB_DIR + "/" + tableName + ".json"
+
+        # Test to make sure database isnt locked
+        if self.lock == True:
+            print "-- Failed: Table " + tableName + " is locked"
+            return
 
         # If into isnt immediately after throw error and exit, not a valid command.
         if query[0] != INTO:
@@ -435,6 +446,11 @@ class databaseShell(Cmd):
         tableName = arg[0]
         tablePath = CURRENT_DB_DIR + "/" + tableName + ".json"
 
+        # Test to make sure database isnt locked
+        if self.lock == True:
+            print "-- Failed: Table " + tableName + " is locked"
+            return
+
         # Test to see if the table exist
         if not os.path.exists(tablePath):
             print "-- !Failed: No Table with name " + tableName + " exists"
@@ -499,6 +515,11 @@ class databaseShell(Cmd):
         tableName = arg[0]
         tablePath = CURRENT_DB_DIR + "/" + tableName + ".json"
 
+        # Test to make sure database isnt locked
+        if self.lock == True:
+            print "-- Failed: Table " + tableName + " is locked"
+            return
+
         # Test to see if the table exist
         if not os.path.exists(tablePath):
             print "-- !Failed: No Table with name " + tableName + " exists"
@@ -526,6 +547,81 @@ class databaseShell(Cmd):
 
         # Print results
         print "-- " + str(recordsChanged) + " records deleted."
+
+    def do_begin(self, arg):
+
+        # Variables
+        databaseFile = CURRENT_DB_DIR + "/" + DB_NAME + ".json"
+        databaseInfo = None
+
+        # Check if database has been selected
+        if CURRENT_DB_DIR == DATABASE_DIR:
+            print "-- !Failed: No Database is being used"
+            return
+
+        # Start striping away the command
+        arg = arg[:-1].split("transaction;")
+
+        # Test for the correct syntax
+        if not len(arg) != 0:
+            print "-- !Failed: Incorrect select syntax"
+            return
+
+        # Add table to database file
+        with open(databaseFile, 'r') as outfile:
+            databaseInfo = json.load(outfile)
+
+        # Read Lock flag
+        self.lock = databaseInfo["Lock"]
+
+        if not self.lock:
+
+            databaseInfo["Lock"] = True
+
+            # Update table data
+            with open(databaseFile, 'w') as database:
+                json.dump(databaseInfo, database, indent = 4, sort_keys = True)
+
+        # Alert user
+        print "-- Transaction Starts"
+
+
+    def do_commit(self, arg):
+
+        # Variables
+        databaseFile = CURRENT_DB_DIR + "/" + DB_NAME + ".json"
+        databaseInfo = None
+
+
+        # Check if database has been selected
+        if CURRENT_DB_DIR == DATABASE_DIR:
+            print "-- !Failed: No Database is being used"
+            return
+
+        # Check if lock is set to none
+        if self.lock == None:
+            print "-- !Failed: Transaction has not started"
+            return
+
+        # Check if lock is set to false
+        if self.lock == True:
+            print "-- Transaction Abort"
+            return
+
+        if self.lock == False:
+
+            # Add table to database file
+            with open(databaseFile, 'r') as outfile:
+                databaseInfo = json.load(outfile)
+
+            databaseInfo["Lock"] = False
+
+            # Update table data
+            with open(databaseFile, 'w') as database:
+                json.dump(databaseInfo, database, indent = 4, sort_keys = True)
+
+            print "-- Transaction Committed"
+            return
 
     def do_EXIT(self, arg):
 
@@ -573,6 +669,7 @@ class databaseShell(Cmd):
         databaseInfo = {
                             "Database Name" : dbName,
                             "Date" : date,
+                            "Lock" : False,
                             "Tables" : []
                         }
 
@@ -642,6 +739,11 @@ class databaseShell(Cmd):
             print "-- !Failed: Table " + tableName + " already exists."
             return
 
+        # Test to make sure database isnt locked
+        if self.lock == True:
+            print "-- Failed: Database " + os.path.basename(CURRENT_DB_DIR) + " is locked"
+            return
+
         # Loop through each columns
         for count in range(len(columnList)):
 
@@ -649,6 +751,7 @@ class databaseShell(Cmd):
 
             if column[0] == "" or column[0] == " ":
                 print "-- !Failed: Incorrect syntax."
+                print "hi"
                 return False
 
             if not self.__testDataTypes(column[1]):
@@ -761,6 +864,12 @@ class databaseShell(Cmd):
         # Check if table exists in current DB and remove from the folder
         if os.path.exists(tablePath):
             os.remove(tablePath)
+
+            # Test to make sure database isnt locked
+            if self.lock == True:
+                print "-- Failed: Table " + tableName + " is locked"
+                return
+
 
             # Delete the table from the databases file as well
             with open(dbTablePath, "r") as tableFile:
