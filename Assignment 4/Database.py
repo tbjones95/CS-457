@@ -24,6 +24,7 @@ class databaseShell(Cmd):
         self.intro  = "Welcome to Assignment 4!"
         self._tableNames = {}
         self.lock = None
+        self.modifiedData = OrderedDict()
 
     def preloop(self):
 
@@ -142,9 +143,12 @@ class databaseShell(Cmd):
 
             data[colName] = {"type": val, "data": []}
 
-            with open(tableFile, "w") as dataFile:
-                json.dump(data, dataFile, indent = 4, sort_keys = True)
-                print "-- Success: Column " + colName + " " + val + " added to table"
+            if self.lock == False:
+                self.modifiedData[tableName] = data
+            else:
+                with open(tableFile, "w") as dataFile:
+                    json.dump(data, dataFile, indent = 4, sort_keys = True)
+                    print "-- Success: Column " + colName + " " + val + " added to table"
 
         # If we are dropping a column
         elif query[2] == DROP and query[3] == COLUMN:
@@ -155,9 +159,12 @@ class databaseShell(Cmd):
             if colName in data:
                 del data[colName]
 
-                with open(tableFile, "w") as dataFile:
-                    json.dump(data, dataFile, indent = 4, sort_keys = True)
-                    print "-- Success: Column " + colName + " " + val + " dropped from table"
+                if self.lock == False:
+                    self.modifiedData[tableName] = data
+                else:
+                    with open(tableFile, "w") as dataFile:
+                        json.dump(data, dataFile, indent = 4, sort_keys = True)
+                        print "-- Success: Column " + colName + " " + val + " dropped from table"
             else:
                 print "-- !Failed: No column with the name " + query[4] + " exists in the table"
 
@@ -293,9 +300,12 @@ class databaseShell(Cmd):
                     valIndex += 1
 
             # Dump information back into the table file
-            with open(tableFile, "w") as dataFile:
-                json.dump(data, dataFile, indent = 4)
-                print "-- Success: 1 new record inserted"
+            if self.lock == False:
+                self.modifiedData[tableName] = data
+            else:
+                with open(tableFile, "w") as dataFile:
+                    json.dump(data, dataFile, indent = 4, sort_keys = True)
+                    print "-- Success: 1 new record inserted"
 
         else:
             print "-- Failed: Missing VALUES from INSERT command"
@@ -474,8 +484,11 @@ class databaseShell(Cmd):
         recordsChanged = self.__UpdateTable(data, startingValue, endingValue)
 
         # Update table data
-        with open(tablePath, 'w') as table:
-            json.dump(data, table, indent = 4, sort_keys = True)
+        if self.lock == False:
+            self.modifiedData[tableName] = data
+        else:
+            with open(tablePath, 'w') as table:
+                json.dump(data, table, indent = 4, sort_keys = True)
 
         # Print results
         print "-- " + str(recordsChanged) + " record modified."
@@ -542,8 +555,11 @@ class databaseShell(Cmd):
         recordsChanged = self.__deleteData(data, condition, columnList)
 
         # Update table data
-        with open(tablePath, 'w') as table:
-            json.dump(data, table, indent = 4, sort_keys = True)
+        if self.lock == False:
+            self.modifiedData[tableName] = data
+        else:
+            with open(tablePath, 'w') as table:
+                json.dump(data, table, indent = 4, sort_keys = True)
 
         # Print results
         print "-- " + str(recordsChanged) + " records deleted."
@@ -609,6 +625,15 @@ class databaseShell(Cmd):
             return
 
         if self.lock == False:
+
+            # Commit all update values
+            for key, value in self.modifiedData.iteritems():
+
+                tableFile = CURRENT_DB_DIR + "/" + key + ".json"
+                print tableFile
+
+                with open(tableFile, 'w') as table:
+                    json.dump(value, table, indent = 4, sort_keys = True)
 
             # Add table to database file
             with open(databaseFile, 'r') as outfile:
