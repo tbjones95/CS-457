@@ -5,9 +5,11 @@
 -- On P1:
 CREATE DATABASE CS457_PA4;
 USE CS457_PA4;
-create table Flights(seat int, status int);
-insert into Flights values(22,0); -- seat 22 is available
-insert into Flights values(23,1); -- seat 23 is occupied
+create table Flights (seat int, status int);
+-- seat 22 is available
+insert into Flights values(22,0);
+-- seat 23 is occupied
+insert into Flights values(23,1);
 begin transaction;
 update Flights set status = 1 where seat = 22;
 
@@ -16,11 +18,13 @@ USE CS457_PA4;
 select * from Flights;
 begin transaction;
 update flights set status = 1 where seat = 22;
-commit; --there should be nothing to commit; it's an "abort"
+--there should be nothing to commit; it's an "abort"
+commit;
 select * from Flights;
 
 -- On P1:
-commit; --persist the change to disk
+--persist the change to disk
+commit;
 select * from Flights;
 
 -- On P2:

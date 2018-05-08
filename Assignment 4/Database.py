@@ -1,6 +1,6 @@
 # Authors: Amir Behmaram and Tanner Jones
-# Date: 3/27/2018
-# Version: 2.0
+# Date: 5/8/2018
+# Version: 4.0
 
 # Import Libraries
 import sys, os, shutil, json, re
@@ -39,10 +39,9 @@ class databaseShell(Cmd):
     def default(self, arg):
 
         # Variables
-
         print "-- !Failed: Incorrect command."
 
-    def do_CREATE(self, arg):
+    def do_create(self, arg):
 
         # Variables
 
@@ -59,7 +58,7 @@ class databaseShell(Cmd):
 
             self.__createTable(arg)
 
-    def do_DROP(self, arg):
+    def do_drop(self, arg):
 
         # Variables
 
@@ -68,15 +67,15 @@ class databaseShell(Cmd):
             return
 
         # Test to create database
-        if arg.startswith(DATABASE):
+        if arg.startswith("database"):
 
             self.__dropDatabase(arg)
 
-        elif arg.startswith(TABLE):
+        elif arg.startswith("table"):
 
             self.__dropTable(arg)
 
-    def do_USE(self, arg):
+    def do_use(self, arg):
 
         # Variables
         global CURRENT_DB_DIR
@@ -102,7 +101,7 @@ class databaseShell(Cmd):
         else:
             print "-- !Failed: No db with name " + dbName + " exists"
 
-    def do_ALTER(self, arg):
+    def do_alter(self, arg):
 
         # Variables
 
@@ -191,6 +190,7 @@ class databaseShell(Cmd):
             print "-- !Failed: Not a valid ALTER command"
             return
 
+    # Depricated, dont chagne to lower case
     def do_SELECT(self, arg):
 
         # Variables
@@ -601,7 +601,6 @@ class databaseShell(Cmd):
         # Alert user
         print "-- Transaction Starts"
 
-
     def do_commit(self, arg):
 
         # Variables
@@ -819,7 +818,7 @@ class databaseShell(Cmd):
         cmdCompents = command[:-1].split(' ', 2)
 
         # Test for either Database or Table
-        if cmdCompents[0] == "TABLE":
+        if cmdCompents[0] == TABLE:
 
             if not len(cmdCompents) == 3:
                 print "-- !Failed: Incorrect syntax."
@@ -835,7 +834,7 @@ class databaseShell(Cmd):
 
             return True
 
-        if cmdCompents[0] == "DATABASE":
+        if cmdCompents[0] == DATABASE:
 
             # Test for the correct syntax
             if not len(cmdCompents) == 2:

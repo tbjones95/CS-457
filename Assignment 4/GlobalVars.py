@@ -1,17 +1,19 @@
 # Authors: Amir Behmaram and Tanner Jones
-# Date: 3/27/2018
-# Version: 2.0
+# Date: 5/8/2018
+# Version: 4.0
 
 # Global variables to be used in databse file
-DATABASE = "DATABASE"
-TABLE = "TABLE"
-ALTER = "ALTER"
-ADD = "ADD"
-DROP = "DROP"
-COLUMN = "COLUMN"
-SELECT = "SELECT"
-FROM = "FROM"
-INSERT = "INSERT"
+CREATE = "create"
+USE = "use"
+DATABASE = "database"
+TABLE = "table"
+ALTER = "alter"
+ADD = "add"
+DROP = "drop"
+COLUMN = "column"
+SELECT = "select"
+FROM = "from"
+INSERT = "insert"
 INTO = "into"
 VALUES = "values"
 STAR = "*"
@@ -21,3 +23,10 @@ GREATER = ">"
 LESS = "<"
 GREATER_EQUAL = ">="
 LESS_EQUAL = "<="
+INNER = "inner"
+JOIN = "join"
+LEFT = "left"
+OUTER = "outer"
+UPDATE = "update"
+SET = "set"
+WHERE = "where"
