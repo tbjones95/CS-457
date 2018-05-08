@@ -1,37 +1,32 @@
-Compile instructions for this project. The project supports commands exactly as they are typed in the supported command list.
-
 This program can be run in one of 2 ways:
 
 1) The program can be passed a SQL file via standard input and it will perform all the operations
    in the file.
 
-   ex: python main.py < PA2_test.sql will run the PA2_test SQL file.
+   ex: python main.py < PA4_test.sql will run the PA4_test SQL file.
 
 2) The program can also be run similarly to SQL lite.
 
    ex: python main.py will print a ":>" to the screen. From here you can enter any of the supported
    SQL commands with the correct syntax and it will execute them.
 
-
-Supported Commands:
+Supported Commands (Commands are case insensitive):
 --------------------------------------------------------------------------------
-- CREATE DATABASE DB;
-
-- USE DB;
-
-- CREATE TABLE table (name, type,..., nameX, typeX);
-
+- create database DB_NAME;
+- use DB_NAME;
+- create  table (name, type,..., nameX, typeX);
 - insert into table values(val,...,valX);
-
 - select * from table;
-
+- select * from table inner join on table2;
+-select * from table left outer join on table2;
 - update table
   set col = 'val'
   where col2= 'val2';
-
 - delete from table
   where col = 'val';
-
 - select col1, col2
   from table
   where col3 = 'val';
+- begin transaction;
+- commit;
+
